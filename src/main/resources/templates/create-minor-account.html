@@ -2,170 +2,302 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Open Minor Account - Nexa Bank</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
         body {
-            background: linear-gradient(to right,#0d1b3d,#1d3a73);
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            height:100vh;
-            font-family:Segoe UI,sans-serif;
-            color:#0d1b3d;
-            margin:0;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #062045, #0a3781);
+            font-family: "Segoe UI", sans-serif;
         }
 
-        .box {
-            background:#fff;
-            padding:35px;
-            border-radius:15px;
-            width:500px;
-            box-shadow:0px 0px 30px rgba(255,215,0,0.3);
+        .main-wrapper {
+            display: flex;
+            width: 1000px;
+            height: 650px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.3);
+        }
+
+        /* LEFT PANEL */
+        .left-panel {
+            width: 35%;
+            background: linear-gradient(135deg, #0b3a84, #062045);
+            color: white;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .left-panel img {
+            width: 160px;
+            border-radius: 20px;
+            border: 4px solid #f5c542;
+            margin-bottom: 20px;
+            box-shadow: 0 0 25px rgba(245,197,66,0.6);
+        }
+
+        .left-panel h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .left-panel p {
+            font-size: 15px;
+            width: 80%;
+            opacity: 0.85;
+        }
+
+        /* RIGHT PANEL */
+        .form-card {
+            width: 65%;
+            padding: 40px 50px;
+            overflow-y: auto;
+        }
+
+        .form-card h2 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #062045;
+        }
+
+        /* GRID */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
         input, select {
-            width:100%;
-            padding:12px;
-            margin-top:14px;
-            border-radius:8px;
-            border:1px solid #aaa;
-            font-size:15px;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #c9c9c9;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 15px;
+            height: 48px;
         }
 
-        button {
-            width:100%;
-            margin-top:22px;
-            padding:14px;
-            background:#f7d65b;
-            border:0;
-            border-radius:8px;
-            font-size:18px;
-            font-weight:600;
-            cursor:pointer;
+        input:focus, select:focus {
+            border-color: #0b3a84;
+            box-shadow: 0 0 8px rgba(11,58,132,0.2);
+            outline: none;
         }
 
-        .pin-wrapper { position:relative; }
+        .full-width {
+            width: 100%;
+            margin-bottom: 25px;
+            box-sizing: border-box;
+        }
 
-        .toggle-eye {
-            position:absolute;
-            right:12px;
-            top:50%;
-            transform:translateY(-50%);
-            cursor:pointer;
-            font-size:18px;
-            color:#555;
+        /* PIN EXACT LIKE MAJOR ACCOUNT */
+        .pin-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #062045;
+            margin-bottom: 10px;
+        }
+
+        .pin-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .pin-box {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            border: 1px solid #c9c9c9;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .pin-box:focus {
+            border-color: #0b3a84;
+            box-shadow: 0 0 8px rgba(11,58,132,0.2);
+            outline: none;
+        }
+
+        .pin-eye {
+            font-size: 20px;
+            cursor: pointer;
+            color: #444;
+        }
+
+        /* BUTTON */
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: #f7d65b;
+            border: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover {
+            background: #ffdd4d;
         }
 
         .error-msg {
-            color:red;
-            margin-top:10px;
-            text-align:center;
-            font-size:15px;
-            display:none;
+            color: red;
+            font-weight: 600;
+            margin-top: -10px;
+            margin-bottom: 15px;
+            text-align: center;
         }
-        input, select {
-    width: 100%;
-    padding: 12px;
-    margin-top: 14px;
-    border-radius: 8px;
-    border: 1px solid #aaa;
-    font-size: 15px;
-    height: 48px;     /* 🔥 Ensures equal height for input + select */
-    box-sizing: border-box;
-}
-
     </style>
 </head>
 
 <body>
-<div class="box">
-    <h2 style="text-align:center;font-size:28px;font-weight:700;">Open Minor Account</h2>
 
-    <form th:action="@{/minor/step1}" th:object="${account}" method="post" onsubmit="return validateAge()">
+<div class="main-wrapper">
 
-        <input type="text" th:field="*{holderName}" placeholder="Minor Full Name"
-               required pattern="[A-Za-z ]+" title="Only letters allowed">
+    <!-- LEFT SIDE -->
+    <div class="left-panel">
+        <img th:src="@{/bank.png}" alt="Bank Logo">
+        <h1>Nexa Bank</h1>
+        <p>Open a secure Minor Account linked to a parent/guardian.</p>
+    </div>
 
-        <input type="email" th:field="*{email}" placeholder="Minor Email" required>
+    <!-- RIGHT SIDE FORM -->
+    <div class="form-card">
 
-        <input type="text" th:field="*{phoneNumber}" placeholder="Minor Phone Number"
-               required pattern="[0-9]{10}" maxlength="10" title="Enter 10 digits">
+        <h2>Open Minor Account</h2>
 
-        <input type="date" th:field="*{dob}" id="dob" required>
+        <form th:action="@{/minor/step1}" th:object="${account}"
+              method="post" onsubmit="return validateAge()">
 
-        <!-- ✅ GENDER FIELD -->
-        <select th:field="*{gender}" required>
-            <option value="" disabled selected>Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Others">Others</option>
-        </select>
+            <!-- ROW 1 -->
+            <div class="grid-2">
+                <input type="text" th:field="*{holderName}" placeholder="Minor Full Name"
+                       required pattern="[A-Za-z ]+">
 
-        <!-- ✅ ADDRESS FIELD -->
-        <input type="text" th:field="*{address}" placeholder="Minor Address"
-               required minlength="5" maxlength="200"
-               title="Enter a valid address (min 5 characters)">
+                <input type="email" th:field="*{email}" placeholder="Minor Email" required>
+            </div>
 
-        <!-- ✅ AADHAR FIELD (12 digits only) -->
-        <input type="text" th:field="*{aadharNumber}" placeholder="Minor Aadhar Number"
-               required pattern="[0-9]{12}" maxlength="12"
-               title="Enter 12-digit Aadhar number only (no spaces or letters)">
+            <!-- ROW 2 -->
+            <div class="grid-2">
+                <input type="text" th:field="*{phoneNumber}" placeholder="Minor Phone Number"
+                       required maxlength="10" pattern="[0-9]{10}">
 
-        <!-- PIN -->
-        <div class="pin-wrapper">
-            <input type="password" id="pinInput" th:field="*{pin}"
-                   placeholder="Set 4-digit PIN" required pattern="[0-9]{4}"
-                   maxlength="4" title="Enter 4 digits only">
-            <i class="fa-solid fa-eye-slash toggle-eye" id="togglePinIcon" onclick="togglePin()"></i>
-        </div>
+                <input type="date" th:field="*{dob}" id="dob" required>
+            </div>
 
-        <button type="submit">Link to Parent / Guardian</button>
+            <!-- ROW 3 -->
+            <div class="grid-2">
+                <select th:field="*{gender}" required>
+                    <option value="" disabled selected>Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Others">Others</option>
+                </select>
 
-        <div class="error-msg" id="ageError">
-            Age must be below 18 to open a Minor Account.
-        </div>
+                <input type="text" th:field="*{aadharNumber}" placeholder="Minor Aadhar Number"
+                       required maxlength="12" pattern="[0-9]{12}">
+            </div>
 
-    </form>
+            <!-- ADDRESS -->
+            <input type="text" class="full-width" th:field="*{address}"
+                   placeholder="Minor Address" required>
+
+            <!-- PIN EXACTLY LIKE MAJOR ACCOUNT -->
+            <div class="pin-title">Set PIN</div>
+
+            <div class="pin-container">
+                <input maxlength="1" class="pin-box pin" oninput="moveNext(this)" pattern="[0-9]" required>
+                <input maxlength="1" class="pin-box pin" oninput="moveNext(this)" pattern="[0-9]" required>
+                <input maxlength="1" class="pin-box pin" oninput="moveNext(this)" pattern="[0-9]" required>
+                <input maxlength="1" class="pin-box pin" oninput="moveNext(this)" pattern="[0-9]" required>
+
+                <input type="hidden" id="pinHidden" th:field="*{pin}">
+                <i class="fa-solid fa-eye-slash pin-eye" id="pinIcon" onclick="togglePIN()"></i>
+            </div>
+
+            <div class="error-msg" id="ageError"></div>
+
+            <button type="submit" class="btn-submit">Link to Parent / Guardian</button>
+
+        </form>
+
+    </div>
 </div>
 
-<script>
-    function togglePin(){
-        let pin = document.getElementById("pinInput");
-        let icon = document.getElementById("togglePinIcon");
 
-        if(pin.type === "password"){
-            pin.type = "text";
-            icon.classList.replace("fa-eye-slash","fa-eye");
-        } else {
-            pin.type = "password";
-            icon.classList.replace("fa-eye","fa-eye-slash");
+<script>
+    // PIN auto move
+    function moveNext(e) {
+        const boxes = document.querySelectorAll(".pin");
+        const hidden = document.getElementById("pinHidden");
+
+        if (e.value.length === 1) {
+            let next = e.nextElementSibling;
+            if (next && next.classList.contains("pin")) next.focus();
         }
+
+        let pin = "";
+        boxes.forEach(b => pin += b.value);
+        hidden.value = pin;
     }
 
-    // AGE VALIDATION
+    // Toggle PIN visibility
+    function togglePIN() {
+        const boxes = document.querySelectorAll(".pin");
+        const icon = document.getElementById("pinIcon");
+
+        let isHidden = boxes[0].type === "password";
+
+        boxes.forEach(b => b.type = isHidden ? "text" : "password");
+
+        icon.classList.toggle("fa-eye");
+        icon.classList.toggle("fa-eye-slash");
+    }
+
+    // On load hide PIN
+    window.onload = () => {
+        document.querySelectorAll(".pin").forEach(p => p.type = "password");
+    };
+
+    // Age < 18 validation
     function validateAge() {
         let dob = document.getElementById("dob").value;
         let error = document.getElementById("ageError");
 
         if (!dob) return false;
 
-        let birthDate = new Date(dob);
+        let birth = new Date(dob);
         let today = new Date();
 
-        let age = today.getFullYear() - birthDate.getFullYear();
-        let monthDiff = today.getMonth() - birthDate.getMonth();
+        let age = today.getFullYear() - birth.getFullYear();
+        let m = today.getMonth() - birth.getMonth();
 
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
 
         if (age >= 18) {
-            error.style.display = "block";
+            error.textContent = "Age must be below 18 to open a Minor Account.";
             return false;
         }
 
-        error.style.display = "none";
+        error.textContent = "";
         return true;
     }
 </script>

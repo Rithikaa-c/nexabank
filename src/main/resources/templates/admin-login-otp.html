@@ -5,120 +5,198 @@
 
     <style>
         body{
-            background: linear-gradient(to right,#0d1b3d,#1d3a73);
+            background: linear-gradient(135deg,#0d1b3d,#1d3a73);
             height:100vh;
             display:flex;
             justify-content:center;
             align-items:center;
-            font-family:Segoe UI,sans-serif;
+            font-family:Segoe UI, sans-serif;
+            color:#fff;
             margin:0;
         }
 
         .otp-box{
-            background:#ffffff;
             width:450px;
-            padding:40px 35px;
-            border-radius:18px;
-            text-align:center;
+            background:#ffffff;
             color:#0d1b3d;
-            box-shadow:0px 0px 40px rgba(0,0,0,0.25);
+            padding:40px 35px;
+            border-radius:20px;
+            text-align:center;
+            box-shadow:0 0 40px rgba(255,255,255,0.25);
+            animation: fadeIn 0.5s ease;
         }
 
-        .otp-box h2{
-            margin-bottom:25px;
-            font-size:26px;
+        @keyframes fadeIn{
+            from{opacity:0; transform:scale(0.97);}
+            to{opacity:1; transform:scale(1);}
+        }
+
+        h2{
+            margin-bottom:10px;
             font-weight:700;
         }
 
-        .otp-box input{
-            width:100%;
-            padding:14px;
-            font-size:18px;
-            border:2px solid #cbd3e0;
-            border-radius:10px;
-            margin-top:12px;
-            outline:none;
+        .email-info{
+            font-size:15px;
+            font-weight:600;
+            color:#1f3c66;
+            margin-bottom:20px;
         }
 
-        .otp-box input:focus{
+        /* OTP BOXES */
+        .otp-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+        }
+
+        .otp-input {
+            width: 48px;
+            height: 58px;
+            border: 2px solid #cfd7e3;
+            border-radius: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .otp-input:focus {
             border-color:#1f3c66;
+            box-shadow:0 0 8px rgba(31,60,102,0.4);
         }
 
-        .otp-box button{
+        /* VERIFY BUTTON */
+        .btn{
             width:100%;
             padding:14px;
-            margin-top:25px;
-            background:#f5c542;
-            border:0;
+            border:none;
             border-radius:10px;
             font-size:18px;
             font-weight:600;
             cursor:pointer;
         }
 
-        .otp-box button:hover{
-            background:#d9ad39;
+        .btn-verify{
+            background:#f5c542;
+            margin-top:15px;
+        }
+        .btn-verify:hover{ background:#e1b336; }
+
+        /* RESEND BUTTON */
+        .btn-resend{
+            background:#1f3c66;
+            color:white;
+            margin-top:15px;
+        }
+        .btn-resend:hover{ background:#254a7a; }
+
+        .timer{
+            margin-top:10px;
+            font-size:15px;
+            font-weight:600;
+            color:red;
         }
 
         .msg{
-            margin-top:12px;
+            font-size:15px;
             font-weight:600;
-        }
-
-        .timer{
-            margin-top:15px;
-            font-size:16px;
-            color:red;
-            font-weight:600;
-        }
-
-        .resend-btn {
             margin-top:10px;
-            background:#1f3c66 !important;
-            color:white !important;
         }
     </style>
 </head>
-
 <body>
 
 <div class="otp-box">
 
-    <h2>Verify OTP</h2>
+    <h2>Enter OTP</h2>
 
-    <p style="font-size:14px;opacity:0.8;">OTP has been sent to <b th:text="${email}"></b></p>
+    <p class="email-info">
+        Sent to: <span th:text="${email}"></span>
+    </p>
 
+    <!-- VERIFY OTP FORM -->
     <form th:action="@{/admin/verify-login-otp}" method="post">
+
         <input type="hidden" name="email" th:value="${email}">
-        <input type="text" name="otp" placeholder="Enter OTP" required>
-        <button type="submit">Verify OTP</button>
+        <input type="hidden" name="otp" id="finalOtp">
+
+        <!-- OTP INPUT BOXES -->
+        <div class="otp-container">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+        </div>
+
+        <button type="submit" class="btn btn-verify">Verify</button>
+
+        <!-- ERROR MESSAGE -->
+        <p class="msg" th:if="${error}" th:text="${error}" style="color:red;"></p>
+
+        <!-- SUCCESS MESSAGE -->
+        <p class="msg" th:if="${message}" th:text="${message}" style="color:green;"></p>
+
+        <p class="timer" id="timer">OTP expires in 02:00</p>
+
     </form>
 
-    <p class="msg" th:if="${error}" th:text="${error}" style="color:red;"></p>
-
-    <p class="timer" id="timer">OTP expires in 02:00</p>
-
+    <!-- RESEND OTP FORM -->
     <form th:action="@{/admin/resend-login-otp}" method="post">
         <input type="hidden" name="email" th:value="${email}">
-        <button class="resend-btn" type="submit">Resend OTP</button>
+        <button type="submit" class="btn btn-resend">Resend OTP</button>
     </form>
 
 </div>
 
 <script>
+    /* ------------ FINAL OTP STRING BUILDER ------------ */
+    const inputs = document.querySelectorAll(".otp-input");
+    const finalOtp = document.getElementById("finalOtp");
+
+    inputs.forEach((box, index) => {
+        box.addEventListener("input", () => {
+
+            if (box.value.length === 1 && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+
+            // build final OTP
+            let otp = "";
+            inputs.forEach(b => otp += b.value);
+            finalOtp.value = otp;
+        });
+
+        box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && index > 0 && box.value === "") {
+                inputs[index - 1].focus();
+            }
+        });
+    });
+
+
+    /* ---------------------- TIMER ---------------------- */
     let timeLeft = 120;
     const timer = document.getElementById("timer");
 
     const countdown = setInterval(() => {
+
         let min = Math.floor(timeLeft / 60);
         let sec = (timeLeft % 60).toString().padStart(2, '0');
+
         timer.innerText = `OTP expires in ${min}:${sec}`;
 
         if(timeLeft <= 0){
             clearInterval(countdown);
-            timer.innerText = "OTP expired. Please resend.";
+            timer.innerText = "OTP expired! Please resend.";
         }
+
         timeLeft--;
+
     }, 1000);
 </script>
 

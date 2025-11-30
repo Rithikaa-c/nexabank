@@ -2,6 +2,8 @@ package com.nexa.bank.nexabank.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "nexa_admins")
 public class Admin {
@@ -20,6 +22,8 @@ public class Admin {
     private String email;
     private String phone;
     private String role;
+    private LocalDateTime lastLoginTime;
+    private String lastLoginIp;
 
     // Getters & setters
     public String getAdminId() { return adminId; }
@@ -39,4 +43,20 @@ public class Admin {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+    public LocalDateTime getLastLoginTime() {
+        return lastLoginTime;
+    }
+
+    public void setLastLoginTime(LocalDateTime lastLoginTime) {
+        this.lastLoginTime = lastLoginTime;
+    }
+
+    public String getLastLoginIp() {
+        return lastLoginIp;
+    }
+
+    public void setLastLoginIp(String lastLoginIp) {
+        this.lastLoginIp = lastLoginIp;
+    }
+
 }

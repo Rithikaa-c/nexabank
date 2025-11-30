@@ -1,42 +1,194 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Minor OTP Verification</title>
+    <title>Verify Minor OTP</title>
+
     <style>
-        body{background:linear-gradient(to right,#0d1b3d,#1d3a73);height:100vh;margin:0;
-             display:flex;justify-content:center;align-items:center;font-family:Segoe UI,sans-serif}
-        .box{background:#fff;width:420px;padding:32px;border-radius:16px;
-             box-shadow:0 0 30px rgba(255,215,0,.3);color:#0d1b3d;text-align:center}
-        input{width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:16px;margin-top:12px}
-        button{width:100%;padding:14px;margin-top:16px;background:#f7d65b;border:0;border-radius:8px;font-size:18px;font-weight:600;cursor:pointer}
-        .timer{margin-top:10px;color:red;font-weight:600}
-        .msg{margin-top:10px;font-weight:600}
+        body{
+            background: linear-gradient(135deg,#0d1b3d,#1d3a73);
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            font-family:Segoe UI, sans-serif;
+            color:#fff;
+            margin:0;
+        }
+
+        .otp-box{
+            width:450px;
+            background:#ffffff;
+            color:#0d1b3d;
+            padding:40px 35px;
+            border-radius:20px;
+            text-align:center;
+            box-shadow:0 0 40px rgba(255,255,255,0.25);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn{
+            from{opacity:0; transform:scale(0.97);}
+            to{opacity:1; transform:scale(1);}
+        }
+
+        h2{
+            margin-bottom:10px;
+            font-weight:700;
+        }
+
+        .email-info{
+            font-size:15px;
+            font-weight:600;
+            color:#1f3c66;
+            margin-bottom:20px;
+        }
+
+        .otp-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+        }
+
+        .otp-input {
+            width: 48px;
+            height: 58px;
+            border: 2px solid #cfd7e3;
+            border-radius: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .otp-input:focus {
+            border-color:#1f3c66;
+            box-shadow:0 0 8px rgba(31,60,102,0.4);
+        }
+
+        .btn{
+            width:100%;
+            padding:14px;
+            border:none;
+            border-radius:10px;
+            font-size:18px;
+            font-weight:600;
+            cursor:pointer;
+        }
+
+        .btn-verify{
+            background:#f5c542;
+            margin-top:15px;
+        }
+
+        .btn-resend{
+            background:#1f3c66;
+            color:white;
+            margin-top:15px;
+        }
+
+        .timer{
+            margin-top:10px;
+            font-size:15px;
+            font-weight:600;
+            color:red;
+        }
+
+        .msg{
+            font-size:15px;
+            font-weight:600;
+            margin-top:10px;
+        }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2>Enter OTP sent to Your Email</h2>
 
+<div class="otp-box">
+
+    <h2>Enter OTP</h2>
+
+    <p class="email-info">
+        Sent to: <span th:text="${minorEmail}"></span>
+    </p>
+
+    <!-- VERIFY OTP FORM -->
     <form th:action="@{/minor/verify-minor-otp}" method="post">
-        <input type="hidden" name="minorEmail" th:value="${minorEmail}">
-        <input type="text" name="otp" placeholder="Enter OTP" required>
-        <button type="submit">Verify</button>
+
+        <!-- CSRF TOKEN REQUIRED -->
+
+
+        <input type="hidden" name="minorEmail"
+               th:value="${minorEmail != null ? minorEmail : #request.getParameter('minorEmail')}">
+
+        <input type="hidden" name="otp" id="finalOtp">
+
+        <div class="otp-container">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+            <input type="text" maxlength="1" class="otp-input">
+        </div>
+
+        <button type="submit" class="btn btn-verify">Verify</button>
+
+        <p class="msg" th:if="${error}" th:text="${error}" style="color:red;"></p>
+
+        <p id="timer" class="timer">OTP expires in 02:00</p>
     </form>
 
-    <p class="msg" th:if="${error}" th:text="${error}" style="color:red;"></p>
-    <p id="t" class="timer">OTP expires in 02:00</p>
+    <!-- RESEND OTP FORM -->
+    <form th:action="@{/minor/resend-minor-otp}" method="post">
 
-    <!-- ✅ Correct Resend Form -->
-    <form th:action="@{/minor/send-minor-otp}" method="post">
+
+
         <input type="hidden" name="minorEmail" th:value="${minorEmail}">
-        <button type="submit" style="background:#1f3c66;color:#fff">Resend OTP</button>
+
+        <p class="msg" th:if="${message}" th:text="${message}" style="color:green;"></p>
+
+        <button type="submit" class="btn btn-resend">Resend OTP</button>
     </form>
+
 </div>
 
 <script>
-    let s=120,el=document.getElementById('t');
-    let id=setInterval(()=>{let m=(s/60|0),x=s%60;el.textContent=`OTP expires in ${m}:${x<10?'0'+x:x}`;
-      if(!s--){clearInterval(id);el.textContent='OTP expired! Please resend.'}},1000);
+    const inputs = document.querySelectorAll(".otp-input");
+    const finalOtp = document.getElementById("finalOtp");
+
+    inputs.forEach((box, i) => {
+        box.addEventListener("input", () => {
+            if (box.value.length === 1 && i < inputs.length - 1)
+                inputs[i + 1].focus();
+
+            let otp = "";
+            inputs.forEach(b => otp += b.value);
+            finalOtp.value = otp;
+        });
+
+        box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && i > 0 && box.value === "")
+                inputs[i - 1].focus();
+        });
+    });
+
+    let timeLeft = 120;
+    const timerLabel = document.getElementById("timer");
+
+    const interval = setInterval(() => {
+        let m = Math.floor(timeLeft / 60);
+        let s = (timeLeft % 60).toString().padStart(2, "0");
+
+        timerLabel.textContent = `OTP expires in ${m}:${s}`;
+
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            timerLabel.textContent = "OTP expired! Please resend.";
+        }
+        timeLeft--;
+    }, 1000);
 </script>
+
 </body>
 </html>

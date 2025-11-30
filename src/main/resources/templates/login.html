@@ -16,19 +16,18 @@
             font-family: "Segoe UI", sans-serif;
         }
 
-        /* MAIN WRAPPER */
-        .main-wrapper {
-            display: flex;
-            width: 920px;
-            height: 560px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-            border-radius: 22px;
-            overflow: hidden;
-            box-shadow: 0 0 40px rgba(0,0,0,0.35);
-        }
+ .main-wrapper {
+    display: flex;
+    width: 960px;
+    height: 640px;   /* ⬅ slightly increased */
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 22px;
+    overflow: hidden;        /* ⬅ FIXED */
+    box-shadow: 0 0 40px rgba(0,0,0,0.35);
+}
 
-        /* LEFT SIDE */
+        /* LEFT PANEL */
         .left-panel {
             width: 45%;
             background: linear-gradient(135deg, #0b3a84, #062045);
@@ -40,10 +39,13 @@
             padding: 30px;
         }
 
+        /* LOGO: rounded + golden border + glow */
         .left-panel img {
             width: 170px;
             margin-bottom: 20px;
-            filter: drop-shadow(0px 6px 15px rgba(0,0,0,0.3));
+            border-radius: 22px;
+            border: 4px solid #f5c542; /* GOLDEN BORDER */
+            box-shadow: 0px 0px 25px rgba(245,197,66,0.8); /* GOLDEN GLOW */
         }
 
         .left-panel h1 {
@@ -61,12 +63,19 @@
             line-height: 1.6;
         }
 
-        /* LOGIN FORM SECTION */
-        .login-card {
-            width: 55%;
-            background: #ffffff;
-            padding: 50px 55px;
-        }
+.login-card {
+    width: 50%;
+    background: #ffffff;
+    padding: 40px 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: hidden;      /* NO SCROLLING */
+}
+
+
+
+
 
         .login-card h2 {
             font-size: 28px;
@@ -75,7 +84,7 @@
             font-weight: 700;
         }
 
-        /* INPUT FIELDS */
+        /* INPUT BOXES */
         .input-box {
             width: 100%;
             margin-top: 18px;
@@ -99,8 +108,8 @@
         .error-msg {
             color: red;
             font-size: 13px;
-            margin-top: 5px;
-            text-align: left;
+            margin-top: 4px;
+            min-height: 18px; /* prevents layout shift */
         }
 
         /* CAPTCHA SECTION */
@@ -131,7 +140,7 @@
             cursor: pointer;
             user-select: none;
             color: #062045;
-            transition: 0.3s ease;
+            transition: 0.3s;
         }
 
         .refresh-btn:hover {
@@ -139,7 +148,6 @@
             transform: rotate(90deg);
         }
 
-        /* CAPTCHA INPUT */
         #captchaInput {
             margin-top: 10px;
             padding: 12px;
@@ -151,7 +159,7 @@
         /* LOGIN BUTTON */
         .btn-login {
             width: 100%;
-            margin-top: 30px;
+            margin-top: 28px;
             padding: 14px;
             background: #f7d65b;
             border: none;
@@ -168,19 +176,18 @@
             transform: scale(1.03);
         }
 
-        /* LINKS */
+        /* LINKS AREA */
         .login-links {
             margin-top: 20px;
             text-align: center;
         }
 
         .login-links a {
-            display: block;
+            display: inline-block;
             text-decoration: none;
             color: #062045;
             font-size: 15px;
             font-weight: 600;
-            margin-top: 6px;
         }
 
     </style>
@@ -237,13 +244,24 @@
 
             <!-- LOGIN BUTTON -->
             <button type="submit" class="btn-login" id="loginBtn" disabled>Login</button>
+            <p th:if="${error}"
+               th:text="${error}"
+               style="color:red; font-size:16px; margin-bottom:10px;">
+            </p>
 
         </form>
 
-        <div class="login-links">
-
-            <a href="/create-account">Open New Account</a>
+        <!-- FIXED FOOTER -->
+        <div class="login-links" style="margin-top:auto; text-align:center; padding-top:20px;">
+            <p style="font-size: 15px; margin:0; color:#062045;">
+                New user?
+                <a href="/create-account"
+                   style="text-decoration:none; font-weight:600; color:#062045;">
+                    Open New Account
+                </a>
+            </p>
         </div>
+
 
     </div>
 

@@ -22,5 +22,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     List<Transaction> getPassbook(@Param("acc") String acc);
     @Query("SELECT COUNT(t) FROM Transaction t")
     Long countAllTransactions();
+    @Query(value = """
+    SELECT t.dayName, t.cnt FROM (
+        SELECT 
+            DAYNAME(transaction_time) AS dayName,
+            COUNT(*) AS cnt
+        FROM transactions
+        WHERE transaction_time >= CURDATE() - INTERVAL 7 DAY
+        GROUP BY dayName
+    ) AS t
+    ORDER BY FIELD(t.dayName,
+        'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')
+    """, nativeQuery = true)
+    List<Object[]> getLast7DaysActivity();
 
 }

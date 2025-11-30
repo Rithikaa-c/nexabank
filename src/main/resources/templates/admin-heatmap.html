@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Weekly Activity Heatmap</title>
+
+    <style>
+        body {
+            background: #071e3d;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: #f5c542;
+            margin-bottom: 25px;
+            font-size: 36px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Heatmap Wrapper */
+        .heatmap-container {
+            width: 85%;
+            margin-top: 20px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(8px);
+            padding: 20px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.4);
+            overflow: visible;   /* FIXED BUG */
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 20px;
+        }
+
+        th {
+            padding: 18px;
+            background: #0c2e6b;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 28px;
+            text-align: center;
+            font-size: 26px;
+            font-weight: 600;
+            border-radius: 12px;
+            position: relative;
+            transition: 0.25s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+
+        /* GRADIENT HEAT COLORS */
+        .low  { background: linear-gradient(135deg, #bde9eb, #8dd7e0); color: #003049; }
+        .mid  { background: linear-gradient(135deg, #457b9d, #3a5f8a); }
+        .high { background: linear-gradient(135deg, #1d3557, #142743); }
+        .peak { background: linear-gradient(135deg, #ff4d6d, #c9184a); color: #fff; }
+
+        /* Hover zoom effect */
+        td:hover {
+            transform: scale(1.12);
+            box-shadow: 0 0 20px rgba(255,255,255,0.7);
+            z-index: 5;
+        }
+
+        /* Tooltip */
+        td:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000000aa;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 25px;
+            display: flex;
+            gap: 18px;
+            font-size: 18px;
+            align-items: center;
+        }
+
+        .legend-box {
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+        }
+
+        .legend-label {
+            margin-right: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Badge */
+        .badge {
+            margin-top: 18px;
+            background: #f5c542;
+            color: #000;
+            font-size: 20px;
+            display: inline-block;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .back-btn {
+    position: absolute;
+    top: 25px;
+    right: 40px;
+    background: #f5c542;
+    color: #071e3d;
+    padding: 12px 18px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: 0.25s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.back-btn:hover {
+    background: #ffdd57;
+    transform: scale(1.08);
+    box-shadow: 0 0 14px rgba(255,255,255,0.8);
+}
+
+    </style>
+
+</head>
+<body>
+<div class="navbar">
+    <a class="back-btn" th:href="@{/admin-dashboard}">← Dashboard</a>
+
+    </div>
+
+<h2>📊 Weekly Account Activity (Heatmap)</h2>
+
+<!-- ⭐ MOST ACTIVE DAY BADGE -->
+<div class="badge"
+     th:if="${mostActiveDay}"
+     th:text="'🔥 Most Active Day: ' + ${mostActiveDay}">
+</div>
+
+<div class="heatmap-container">
+    <table>
+        <tr>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+            <th>Saturday</th>
+            <th>Sunday</th>
+        </tr>
+
+        <tr>
+            <td th:each="count : ${weeklyData}"
+                th:text="${count}"
+                th:attr="data-tooltip=${count + ' Transactions'}"
+                th:class="${count == 0 ? 'low' :
+                            (count <= 2 ? 'mid' :
+                            (count <= 5 ? 'high' : 'peak'))}">
+            </td>
+        </tr>
+    </table>
+
+    <!-- ⭐ LEGEND SECTION -->
+    <div class="legend">
+        <div class="legend-label"><div class="legend-box low"></div>Low Activity</div>
+        <div class="legend-label"><div class="legend-box mid"></div>Moderate</div>
+        <div class="legend-label"><div class="legend-box high"></div>High</div>
+        <div class="legend-label"><div class="legend-box peak"></div>Peak</div>
+    </div>
+</div>
+
+</body>
+</html>

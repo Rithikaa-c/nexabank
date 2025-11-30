@@ -20,11 +20,16 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class AdminController {
@@ -34,8 +39,8 @@ public class AdminController {
 
     private final EmailService emailService;
     private final AdminLogRepository logRepository;
+    private final AdminService adminService;
 
-    private final AdminService service;
     private final AdminDashboardService dashboardService;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
@@ -44,23 +49,23 @@ public class AdminController {
             DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
     private final OtpService otpService;
 
-    public AdminController(AdminService service,
+    public AdminController(AdminService adminService,
                            AdminDashboardService dashboardService,
                            AccountRepository accountRepository,
                            TransactionRepository transactionRepository,
                            EmailService emailService,
                            AdminLogRepository logRepository,
                            OtpService otpService,
-                           JavaMailSender mailSender) {   // <-- ADD THIS
+                           JavaMailSender mailSender) {
 
-        this.service = service;
+        this.adminService = adminService;
         this.dashboardService = dashboardService;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.emailService = emailService;
         this.logRepository = logRepository;
         this.otpService = otpService;
-        this.mailSender = mailSender;  // <-- STORE IT
+        this.mailSender = mailSender;
     }
 
     // ------------------------------------------
@@ -90,7 +95,7 @@ public class AdminController {
         }
 
         // Validate admin credentials
-        Admin admin = service.validateLogin(adminId, password);
+        Admin admin = adminService.validateLogin(adminId, password);
 
         if (admin == null) {
             model.addAttribute("error", "Invalid Admin ID or Password");
@@ -115,6 +120,7 @@ public class AdminController {
     public String verifyAdminOtp(@RequestParam String email,
                                  @RequestParam String otp,
                                  HttpSession session,
+                                 HttpServletRequest request,
                                  Model model) {
 
         boolean isValid = otpService.verifyOtp(email, otp);
@@ -125,18 +131,36 @@ public class AdminController {
             return "admin-login-otp";
         }
 
-        // Move admin from pending to logged-in session
+        // Fetch pending admin
         Admin admin = (Admin) session.getAttribute("pendingAdmin");
+
         if (admin == null) {
             model.addAttribute("error", "Session expired. Please login again.");
             return "admin-login";
         }
 
+        // ⭐ GET LOGIN TIME + IP
+        LocalDateTime loginTime = LocalDateTime.now();
+        String ip = request.getRemoteAddr();
+
+        admin.setLastLoginTime(loginTime);
+        admin.setLastLoginIp(ip);
+
+// Save to DB
+        adminService.saveAdmin(admin);
+
+        // Save to DB
+        adminService.saveAdmin(admin);
+
+        // Move admin to logged session
         session.removeAttribute("pendingAdmin");
         session.setAttribute("loggedAdmin", admin);
+        model.addAttribute("weeklyActivity", adminService.getWeeklyActivity());
+
 
         return "redirect:/admin-dashboard";
     }
+
     @PostMapping("/admin/resend-login-otp")
     public String resendAdminOtp(@RequestParam String email, Model model) {
 
@@ -161,6 +185,25 @@ public class AdminController {
         model.addAttribute("activeAccounts", dashboardService.getActiveAccounts());
         model.addAttribute("frozenAccounts", dashboardService.getFrozenAccounts());
         model.addAttribute("transactionCount", dashboardService.getTransactionCount());
+
+        // ⭐ Weekly Activity Chart Data
+        model.addAttribute("weeklyActivity", adminService.getWeeklyActivity());
+
+        // Format login time
+        if (admin.getLastLoginTime() != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+            model.addAttribute("formattedLastLogin", admin.getLastLoginTime().format(formatter));
+        } else {
+            model.addAttribute("formattedLastLogin", "First Login");
+        }
+
+        // Format IP
+        String ip = admin.getLastLoginIp();
+        if (ip == null) ip = "Unknown";
+        if (ip.equals("0:0:0:0:0:0:0:1"))
+            model.addAttribute("formattedIp", "Localhost (127.0.0.1)");
+        else
+            model.addAttribute("formattedIp", ip);
 
         return "admin-dashboard";
     }
@@ -572,5 +615,38 @@ public class AdminController {
     public String adminDashboard() {
         return "admin-dashboard";  // your file name
     }
+
+    @GetMapping("/admin/activity-heatmap")
+    public String heatmap(HttpSession session, Model model) {
+
+        Admin logged = (Admin) session.getAttribute("loggedAdmin");
+
+        if (logged == null) {
+            return "redirect:/admin-login";
+        }
+
+        // Weekly data
+        Map<String, Integer> weekly = adminService.getWeeklyActivity();
+        List<Integer> weeklyList = new ArrayList<>(weekly.values());
+
+        // Find most active day
+        int max = Collections.max(weekly.values());
+        String mostActiveDay = weekly.entrySet()
+                .stream()
+                .filter(e -> e.getValue() == max)
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse("");
+
+        // Send to HTML
+        model.addAttribute("weeklyData", weeklyList);
+        model.addAttribute("mostActiveDay", mostActiveDay);
+
+        // 🔥 IMPORTANT: Add admin session for dashboard
+        model.addAttribute("loggedAdmin", logged);
+
+        return "admin-heatmap";
+    }
+
 
 }

@@ -32,13 +32,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
+import jakarta.servlet.http.HttpServletRequest;
+
+// inside class: add a logger near top (optional but useful)
+@SessionAttributes("pendingMinor")
 
 @Controller
 public class AccountController {
     @Autowired
     private ComplaintRepository complaintRepository;
     // inside AccountController class (existing)
-
+    private static final Logger logger = Logger.getLogger(AccountController.class.getName());
     @Autowired private AccountService accountService;
     @Autowired private AccountRepository accountRepository;
     @Autowired private OtpService otpService;
@@ -67,54 +77,78 @@ public class AccountController {
         model.addAttribute("account", new Account());
         return "create-account";
     }
+    @Autowired
+    private HttpSession session;
 
     @PostMapping("/major/send-otp")
-    public String sendMajorOtp(@ModelAttribute("account") Account acc, RedirectAttributes ra, Model model) {
+    public String sendMajorOtp(@ModelAttribute("account") Account acc,
+                               RedirectAttributes ra,
+                               Model model) {
+
         if (acc.getDob() == null || !accountService.isAdult(acc.getDob())) {
+            model.addAttribute("account", acc);
             model.addAttribute("error", "Age must be 18+ for Major Account.");
             return "create-account";
         }
 
-        pendingAccountMap.put(acc.getEmail(), acc);
+        session.setAttribute("pendingMajorAccount", acc);
         otpService.generateAndSendOtp(acc.getEmail(), mailSender);
 
-        ra.addAttribute("email", acc.getEmail());
-        return "redirect:/verify-otp";
+        return "redirect:/verify-otp?email=" + acc.getEmail();
     }
 
+
     @GetMapping("/verify-otp")
-    public String verifyOtpPage(@RequestParam String email, Model model) {
+    public String verifyOtpPage(@RequestParam(name="email") String email, Model model) {
         model.addAttribute("email", email);
         return "verify-otp";
     }
 
     @PostMapping("/major/verify-otp")
-    public String verifyMajorOtp(@RequestParam String email, @RequestParam String otp, Model model) {
+    public String verifyMajorOtp(@RequestParam String email,
+                                 @RequestParam String otp,
+                                 Model model) {
+
         if (!otpService.verifyOtp(email, otp)) {
             model.addAttribute("email", email);
             model.addAttribute("error", "Invalid OTP. Try Again.");
             return "verify-otp";
         }
 
-        Account saved = accountService.createAccount(pendingAccountMap.get(email));
-        pendingAccountMap.remove(email);
+        // ✅ Get saved account from session
+        Account acc = (Account) session.getAttribute("pendingMajorAccount");
 
-// ✅ Send Welcome Email (NEW LINE)
+        if (acc == null) {
+            model.addAttribute("account", new Account());
+            model.addAttribute("error", "Session expired! Please fill the form again.");
+            return "create-account";
+        }
+
+        // Save to DB
+        Account saved = accountService.createAccount(acc);
+
+        // Remove from session
+        session.removeAttribute("pendingMajorAccount");
+
+        // Send welcome email
         otpService.sendWelcomeEmail(
                 saved.getEmail(),
                 saved.getHolderName(),
                 saved.getAccountNumber(),
                 saved.getBranchName(),
                 saved.getIfscCode()
-
         );
 
         model.addAttribute("holder", saved.getHolderName());
         model.addAttribute("accNumber", saved.getAccountNumber());
         model.addAttribute("branch", saved.getBranchName());
         model.addAttribute("ifsc", saved.getIfscCode());
+
         return "account-success";
     }
+
+
+
 
     // ------------------ MINOR ACCOUNT ------------------
     @GetMapping("/create-minor-account")
@@ -122,14 +156,21 @@ public class AccountController {
         model.addAttribute("account", new Account());
         return "create-minor-account";
     }
-
     @PostMapping("/minor/step1")
-    public String captureMinor(@ModelAttribute("account") Account minor, RedirectAttributes ra) {
+    public String captureMinor(@ModelAttribute("account") Account minor,
+                               RedirectAttributes ra) {
+
+        String normalizedMinorEmail = minor.getEmail().trim().toLowerCase();
+        minor.setEmail(normalizedMinorEmail);
         minor.setMinor(true);
-        pendingMinorMap.put(minor.getEmail(), minor);
-        ra.addAttribute("minorEmail", minor.getEmail());
+
+        // ✅ Save in session (important)
+        session.setAttribute("pendingMinor", minor);
+
+        ra.addAttribute("minorEmail", normalizedMinorEmail);
         return "redirect:/enter-guardian-account";
     }
+
 
     @GetMapping("/enter-guardian-account")
     public String enterGuardian(@RequestParam String minorEmail, Model model) {
@@ -165,8 +206,8 @@ public class AccountController {
             model.addAttribute("error", "Guardian must be 18+.");
             return "enter-guardian-account";
         }
+        pendingMinorGuardianMap.put(minorEmail.trim().toLowerCase(), guardianAccountNumber);
 
-        pendingMinorGuardianMap.put(minorEmail, guardianAccountNumber);
         otpService.generateAndSendOtp(guardian.getEmail(), mailSender);
 
         ra.addAttribute("email", guardian.getEmail());
@@ -182,13 +223,15 @@ public class AccountController {
         model.addAttribute("minorEmail", minorEmail);
         return "verify-guardian-otp";
     }
-
     @PostMapping("/minor/verify-guardian-otp")
     public String verifyGuardian(@RequestParam String minorEmail,
                                  @RequestParam String email,
                                  @RequestParam String otp,
                                  RedirectAttributes ra,
                                  Model model) {
+
+        minorEmail = minorEmail.trim().toLowerCase();
+        email = email.trim().toLowerCase();
 
         if (!otpService.verifyOtp(email, otp)) {
             model.addAttribute("email", email);
@@ -197,63 +240,105 @@ public class AccountController {
             return "verify-guardian-otp";
         }
 
-        ra.addAttribute("minorEmail", minorEmail);
-        return "redirect:/guardian-link-success";
+        // ✅ FIX HERE
+        return "redirect:/guardian-link-success?minorEmail=" + minorEmail;
     }
-
     @GetMapping("/guardian-link-success")
-    public String guardianLinked(@RequestParam String minorEmail, Model model) {
+    public String guardianLinked(@RequestParam String minorEmail, Model model, HttpSession session) {
+
+        // ✅ Get minor from session (not model)
+        Account minor = (Account) session.getAttribute("pendingMinor");
+
+        if (minor == null) {
+            model.addAttribute("error", "Session expired. Start again.");
+            return "select-account-type";
+        }
+
         model.addAttribute("minorEmail", minorEmail);
         return "guardian-link-success";
     }
-
     @PostMapping("/minor/send-minor-otp")
-    public String sendMinorOtp(@RequestParam String minorEmail, RedirectAttributes ra) {
+    public String sendMinorOtp(@RequestParam String minorEmail,
+                               RedirectAttributes ra,
+                               HttpSession session) {
+
+        minorEmail = minorEmail.trim().toLowerCase();
+
+        // ✅ Get minor from session (NOT from map)
+        Account minor = (Account) session.getAttribute("pendingMinor");
+
+        if (minor == null || !minor.getEmail().equals(minorEmail)) {
+            ra.addFlashAttribute("error", "Session expired. Start again.");
+            return "redirect:/select-account-type";
+        }
+
         otpService.generateAndSendOtp(minorEmail, mailSender);
+
         ra.addAttribute("minorEmail", minorEmail);
         return "redirect:/verify-minor-otp";
     }
 
     @GetMapping("/verify-minor-otp")
-    public String minorOtp(@RequestParam String minorEmail, Model model) {
-        model.addAttribute("email", minorEmail);
+    public String showMinorOtpPage(@RequestParam String minorEmail,
+                                   Model model,
+                                   HttpSession session) {
+
+        minorEmail = minorEmail.trim().toLowerCase();
+
+        // ❗ Get minor from session
+        Account minor = (Account) session.getAttribute("pendingMinor");
+
+        // ❗ If not found, session expired
+        if (minor == null || !minor.getEmail().equals(minorEmail)) {
+            model.addAttribute("error", "Session expired. Start again.");
+            return "select-account-type";
+        }
+
         model.addAttribute("minorEmail", minorEmail);
+        model.addAttribute("email", minorEmail);
+
         return "verify-minor-otp";
     }
 
     @PostMapping("/minor/verify-minor-otp")
     public String verifyMinorOtp(@RequestParam String minorEmail,
                                  @RequestParam String otp,
-                                 Model model) {
+                                 Model model,
+                                 HttpSession session) {
 
-        if (!otpService.verifyOtp(minorEmail, otp)) {
-            model.addAttribute("email", minorEmail);
-            model.addAttribute("minorEmail", minorEmail);
-            model.addAttribute("error", "Invalid or expired OTP. Please try again.");
+        String normalizedMinor = minorEmail.trim().toLowerCase();
+
+        // 1️⃣ Validate OTP
+        if (!otpService.verifyOtp(normalizedMinor, otp)) {
+            model.addAttribute("email", normalizedMinor);
+            model.addAttribute("minorEmail", normalizedMinor);
+            model.addAttribute("error", "Invalid or expired OTP.");
             return "verify-minor-otp";
         }
 
-        Account minor = pendingMinorMap.get(minorEmail);
-        if (minor == null) {
+        // 2️⃣ Get Minor from session (correct way)
+        Account minor = (Account) session.getAttribute("pendingMinor");
+
+        if (minor == null || !minor.getEmail().equals(normalizedMinor)) {
             model.addAttribute("error", "Session expired. Start again.");
             return "select-account-type";
         }
 
-        minor.setMinor(true);
-        minor.setAccountType("Savings");
-
-        String guardianAccNo = pendingMinorGuardianMap.get(minorEmail);
+        // 3️⃣ Get guardian account number (from map or session)
+        String guardianAccNo = pendingMinorGuardianMap.get(normalizedMinor);
         Account guardian = accountRepository.findByAccountNumber(guardianAccNo)
-                .orElseThrow(() -> new RuntimeException("Guardian account not found"));
+                .orElseThrow(() -> new RuntimeException("Guardian not found"));
 
-
-        // ✅ copy branch + IFSC from guardian
+        // 4️⃣ Assign guardian details to minor
+        minor.setAccountType("Savings");
+        minor.setGuardianAccountNumber(guardianAccNo);
         minor.setBranchName(guardian.getBranchName());
         minor.setIfscCode(guardian.getIfscCode());
 
-        minor.setGuardianAccountNumber(guardianAccNo);
-
+        // 5️⃣ Save account
         Account saved = accountService.createAccount(minor);
+
+        // 6️⃣ Send welcome email
         otpService.sendWelcomeEmail(
                 saved.getEmail(),
                 saved.getHolderName(),
@@ -262,16 +347,43 @@ public class AccountController {
                 saved.getIfscCode()
         );
 
-        pendingMinorMap.remove(minorEmail);
-        pendingMinorGuardianMap.remove(minorEmail);
+        // 7️⃣ Clear session + map entry
+        session.removeAttribute("pendingMinor");
+        pendingMinorGuardianMap.remove(normalizedMinor);
 
+        // 8️⃣ Show success page
         model.addAttribute("holder", saved.getHolderName());
         model.addAttribute("accNumber", saved.getAccountNumber());
         model.addAttribute("branch", saved.getBranchName());
         model.addAttribute("ifsc", saved.getIfscCode());
+
         return "account-success";
     }
-    // ------------------ LOGIN FLOW ------------------
+
+    @PostMapping("/minor/resend-minor-otp")
+    public String resendMinorOtp(@RequestParam String minorEmail,
+                                 RedirectAttributes ra,
+                                 HttpSession session) {
+
+        String normalizedMinorEmail = minorEmail.trim().toLowerCase();
+
+        // 🔍 Get minor from session (correct)
+        Account minor = (Account) session.getAttribute("pendingMinor");
+
+        if (minor == null || !minor.getEmail().equals(normalizedMinorEmail)) {
+            ra.addFlashAttribute("error", "Session expired. Start again.");
+            return "redirect:/select-account-type";
+        }
+
+        // 📩 Send OTP
+        otpService.generateAndSendOtp(normalizedMinorEmail, mailSender);
+
+        ra.addFlashAttribute("message", "OTP resent successfully!");
+
+        String encoded = URLEncoder.encode(normalizedMinorEmail, StandardCharsets.UTF_8);
+        return "redirect:/verify-minor-otp?minorEmail=" + encoded;
+    }
+
 
     @GetMapping("/login")
     public String showLogin(Model model) {
@@ -319,12 +431,13 @@ public class AccountController {
     @PostMapping("/verify-login-otp")
     public String verifyLoginOtp(@RequestParam("email") String email,
                                  @RequestParam("otp") String otp,
+                                 HttpServletRequest request,
                                  Model model) {
 
         boolean isValid = otpService.verifyOtp(email, otp);
 
         if (isValid) {
-            // ✅ Fetch the account from loginPending map instead of email directly
+
             Account account = loginPending.get(email);
 
             if (account == null) {
@@ -332,9 +445,14 @@ public class AccountController {
                 return "login";
             }
 
-            // ✅ Redirect to dashboard with account number instead of email
+            // ⭐ SAVE LAST LOGIN TIME & IP
+            account.setLastLoginTime(LocalDateTime.now());
+            account.setLastLoginIp(request.getRemoteAddr());
+            accountRepository.save(account);
+
             return "redirect:/dashboard?accountNumber=" + account.getAccountNumber();
-        } else {
+        }
+        else {
             model.addAttribute("email", email);
             model.addAttribute("error", "Invalid OTP. Please try again.");
             return "verify-login-otp";
@@ -349,13 +467,22 @@ public class AccountController {
     // Resend OTP for Major account
     @PostMapping("/major/resend-otp")
     public String resendMajorOtp(@RequestParam String email, RedirectAttributes ra) {
-        // regenerate/send OTP to the same email
+
+        // Keep session alive
+        Account acc = (Account) session.getAttribute("pendingMajorAccount");
+
+        if (acc == null || !acc.getEmail().equals(email)) {
+            ra.addFlashAttribute("error", "Session expired. Please fill the form again.");
+            return "redirect:/create-account";
+        }
+
         otpService.generateAndSendOtp(email, mailSender);
 
-        // redirect back to verify page so email param stays in URL
-        ra.addAttribute("email", email);
-        return "redirect:/verify-otp";
+        ra.addFlashAttribute("success", "OTP has been resent to your email!");
+
+        return "redirect:/verify-otp?email=" + email;
     }
+
 
     // Replace your existing dashboard(...) and viewAccountDetails(...) methods with these
 
@@ -380,6 +507,8 @@ public class AccountController {
         model.addAttribute("branch", account.getBranchName());
         model.addAttribute("ifsc", account.getIfscCode());
         model.addAttribute("accNumber", account.getAccountNumber());
+        model.addAttribute("lastLoginTime", account.getLastLoginTime());
+        model.addAttribute("lastLoginIp", account.getLastLoginIp());
 
         // Robust handling for createdAt: supports LocalDate or LocalDateTime or null
         String accountAge = "N/A";
@@ -406,6 +535,25 @@ public class AccountController {
             // Log optionally — but don't throw. We keep a friendly fallback.
             accountAge = "N/A";
         }
+// FORMAT LAST LOGIN TIME
+        if (account.getLastLoginTime() != null) {
+            DateTimeFormatter formatter =
+                    DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+
+            String formattedTime = account.getLastLoginTime().format(formatter);
+            model.addAttribute("formattedLastLogin", formattedTime);
+        } else {
+            model.addAttribute("formattedLastLogin", "First Login");
+        }
+
+// FORMAT LOGIN IP
+        String ip = account.getLastLoginIp();
+        if (ip == null) ip = "Unknown";
+
+        if (ip.equals("0:0:0:0:0:0:0:1"))
+            model.addAttribute("formattedIp", "Localhost (127.0.0.1)");
+        else
+            model.addAttribute("formattedIp", ip);
 
         model.addAttribute("accountAge", accountAge);
         return "dashboard";
@@ -790,5 +938,37 @@ public class AccountController {
         ra.addFlashAttribute("success", "Daily limit updated!");
         return "redirect:/daily-limit?accountNumber=" + accountNumber;
     }
+    @PostMapping("/resend-login-otp")
+    public String resendLoginOtp(@RequestParam String email, RedirectAttributes ra) {
+
+        Account acc = loginPending.get(email);
+
+        if (acc == null) {
+            ra.addFlashAttribute("error", "Session expired. Please login again.");
+            return "redirect:/login";
+        }
+
+        // Generate and send new OTP
+        otpService.generateAndSendOtp(email, mailSender);
+
+        ra.addAttribute("email", email);
+        ra.addFlashAttribute("message", "A new OTP has been sent to your email.");
+
+        return "redirect:/verify-login-otp";
+    }
+    @PostMapping("/minor/guardian-resend-otp")
+    public String resendGuardianOtp(@RequestParam String email,
+                                    @RequestParam String minorEmail,
+                                    Model model) {
+
+        otpService.sendGuardianOtp(email);
+
+        model.addAttribute("email", email);
+        model.addAttribute("minorEmail", minorEmail);
+        model.addAttribute("message", "OTP resent successfully!");
+
+        return "verify-guardian-otp";
+    }
+
 
 }

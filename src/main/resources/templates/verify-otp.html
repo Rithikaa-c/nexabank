@@ -5,66 +5,233 @@
 
     <style>
         body{
-            background: linear-gradient(to right,#0d1b3d,#1d3a73);
-            height:100vh;display:flex;justify-content:center;align-items:center;
-            font-family:Segoe UI,sans-serif;color:#fff;margin:0;
+            background: linear-gradient(135deg,#0d1b3d,#1d3a73);
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            font-family:Segoe UI, sans-serif;
+            color:#fff;
+            margin:0;
         }
-        .box{
-            background:#fff;color:#0d1b3d;width:420px;padding:35px 30px;
-            border-radius:15px;text-align:center;
-            box-shadow:0px 0px 30px rgba(255,255,255,0.25);
-        }
-        input{
-            width:100%;padding:12px;font-size:18px;
-            border:1px solid #bbb;border-radius:8px;margin-top:12px;
-        }
-        button{
-            width:100%;padding:14px;margin-top:22px;background:#f5c542;border:0;
-            border-radius:8px;font-size:18px;font-weight:600;cursor:pointer;
-        }
-        button:hover{background:#e1b336;}
-        .timer{margin-top:10px;font-size:16px;color:red;font-weight:600;}
-        .msg{margin-top:12px;font-weight:600;}
-        .resend-btn { background:#1f3c66;color:white;border-radius:8px;padding:12px;border:0; cursor:pointer; }
-        .resend-btn:hover { filter:brightness(.95); }
-    </style>
 
+        .otp-box{
+            width:450px;
+            background:#ffffff;
+            color:#0d1b3d;
+            padding:40px 35px;
+            border-radius:20px;
+            text-align:center;
+            box-shadow:0 0 40px rgba(255,255,255,0.25);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn{
+            from{opacity:0; transform:scale(0.97);}
+            to{opacity:1; transform:scale(1);}
+        }
+
+        h2{
+            margin-bottom:10px;
+            font-weight:700;
+        }
+
+        .email-info{
+            font-size:15px;
+            font-weight:600;
+            color:#1f3c66;
+            margin-bottom:20px;
+        }
+
+        /* OTP INPUTS */
+        .otp-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+        }
+
+        .otp-input {
+            width: 48px;
+            height: 58px;
+            border: 2px solid #cfd7e3;
+            border-radius: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .otp-input:focus {
+            border-color:#1f3c66;
+            box-shadow:0 0 8px rgba(31,60,102,0.4);
+        }
+
+        /* Shake animation */
+        .shake {
+            animation: shakeAnim 0.3s ease;
+        }
+
+        @keyframes shakeAnim {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            50% { transform: translateX(6px); }
+            75% { transform: translateX(-6px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* BUTTON STYLES */
+        .btn{
+            width:100%;
+            padding:14px;
+            border:none;
+            border-radius:10px;
+            font-size:18px;
+            font-weight:600;
+            cursor:pointer;
+            transition:.2s;
+        }
+
+        .btn-verify{
+            background:#f5c542;
+            margin-top:15px;
+        }
+        .btn-verify:hover{ background:#e1b336; }
+
+        .btn-resend{
+            background:#1f3c66;
+            color:white;
+            margin-top:15px;
+        }
+        .btn-resend:hover{ background:#254a7a; }
+
+        /* TIMER */
+        .timer{
+            margin-top:10px;
+            font-size:15px;
+            font-weight:600;
+            color:red;
+        }
+
+        .msg{
+            font-size:15px;
+            font-weight:600;
+            margin-top:10px;
+        }
+
+        .success-text{
+            color:green;
+            font-weight:700;
+            margin-top:10px;
+            display:none;
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="box">
-    <h2>Enter OTP sent to your Email</h2>
+<div class="otp-box">
 
-    <!-- POST to the Major verification endpoint -->
-    <form th:action="@{/major/verify-otp}" method="post">
-        <!-- hidden email (must be present) -->
+    <h2>Enter OTP</h2>
+    <p class="email-info">
+        OTP sent to: <span th:text="${email}"></span>
+
+    </p>
+
+    <!-- SUCCESS MESSAGE WHEN RESEND IS CLICKED -->
+    <p id="resendMessage" class="success-text"
+       th:if="${resendMessage}"
+       th:text="${resendMessage}">
+    </p>
+
+    <!-- VERIFY OTP FORM -->
+    <form th:action="@{/major/verify-otp}" method="post" id="verifyForm">
         <input type="hidden" name="email" th:value="${email}">
-        <input type="text" name="otp" placeholder="Enter OTP" required>
-        <button type="submit">Verify</button>
+        <input type="hidden" name="otp" id="finalOtp">
+
+        <div class="otp-container" id="otpBoxGroup">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+            <input type="text" maxlength="1" class="otp-input" inputmode="numeric">
+        </div>
+
+        <button type="submit" class="btn btn-verify">Verify</button>
+
+        <!-- ERROR + SUCCESS -->
+        <p class="msg" th:if="${expired}" th:text="${expired}" style="color:red;"></p>
+        <p class="msg" th:if="${message}" th:text="${message}" style="color:green;"></p>
+
+        <p class="timer" id="timer">OTP expires in 02:00</p>
     </form>
 
-    <p class="msg" th:if="${expired}" th:text="${expired}" style="color:red;"></p>
-    <p class="msg" th:if="${message}" th:text="${message}" style="color:green;"></p>
-
-    <!-- Countdown Timer -->
-    <p class="timer" id="timer">OTP expires in 02:00</p>
-
-    <!-- Resend OTP for major -> posts to controller endpoint /major/resend-otp -->
-    <form th:action="@{/major/resend-otp}" method="post" style="margin-top:14px;">
-        <input type="hidden" name="email" th:value="${email}">
-        <button type="submit" class="resend-btn">Resend OTP</button>
+    <form th:action="@{/major/resend-otp(email=${email})}" method="post">
+        <button type="submit" class="btn btn-resend">Resend OTP</button>
     </form>
+    <div th:if="${success}"
+         style="color:green; font-weight:bold; text-align:center; margin-bottom:10px;">
+        [[${success}]]
+    </div>
+
+    <div th:if="${error}"
+         style="color:red; font-weight:bold; text-align:center; margin-bottom:10px;">
+        [[${error}]]
+    </div>
+
+
 </div>
 
 <script>
-    let timeLeft = 120; // seconds
+    /* ----- OTP INPUT HANDLING ----- */
+    const boxes = document.querySelectorAll(".otp-input");
+    const finalOtp = document.getElementById("finalOtp");
+    const otpGroup = document.getElementById("otpBoxGroup");
+    const verifyForm = document.getElementById("verifyForm");
+
+    boxes.forEach((box, index) => {
+
+        box.addEventListener("input", () => {
+            box.value = box.value.replace(/[^0-9]/g, ""); // digits only
+
+            if (box.value && index < boxes.length - 1) {
+                boxes[index + 1].focus();
+            }
+
+            let otp = "";
+            boxes.forEach(b => otp += b.value);
+            finalOtp.value = otp;
+
+            if (otp.length === 6) {
+    finalOtp.value = otp;
+}
+
+        });
+
+        box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !box.value && index > 0) {
+                boxes[index - 1].focus();
+            }
+        });
+    });
+
+    /* ----- SHAKE WHEN WRONG OTP ----- */
+    const errorMsg = document.querySelector(".msg[style='color:red;']");
+    if (errorMsg) {
+        otpGroup.classList.add("shake");
+        setTimeout(() => otpGroup.classList.remove("shake"), 400);
+    }
+
+    /* ----- TIMER ----- */
+    let timeLeft = 120;
     const timer = document.getElementById("timer");
 
     const countdown = setInterval(() => {
         let minutes = Math.floor(timeLeft / 60);
-        let seconds = timeLeft % 60;
+        let seconds = (timeLeft % 60).toString().padStart(2, '0');
 
-        seconds = seconds < 10 ? "0" + seconds : seconds;
         timer.innerText = `OTP expires in ${minutes}:${seconds}`;
 
         if(timeLeft <= 0){
@@ -73,6 +240,7 @@
         }
         timeLeft--;
     }, 1000);
+
 </script>
 
 </body>

@@ -2,36 +2,126 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Link Guardian - Nexa Bank</title>
+
     <style>
-        body{background:linear-gradient(to right,#0d1b3d,#1d3a73);height:100vh;margin:0;
-             display:flex;justify-content:center;align-items:center;font-family:Segoe UI,sans-serif}
-        .box{background:#fff;width:480px;padding:32px;border-radius:16px;box-shadow:0 0 30px rgba(255,215,0,.3);color:#0d1b3d}
-        input{width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:16px;margin-top:12px}
-        button{width:100%;padding:14px;margin-top:18px;background:#f7d65b;border:0;border-radius:8px;font-size:18px;font-weight:600;cursor:pointer}
-        .msg{margin-top:10px;color:red;font-weight:600}
+        body{
+            margin:0;
+            height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:linear-gradient(135deg,#062045,#0a3781);
+            font-family:"Segoe UI",sans-serif;
+        }
+
+        /* CARD */
+        .card{
+            width:460px;
+            background:white;
+            padding:40px 35px;
+            border-radius:20px;
+            box-shadow:0 0 40px rgba(0,0,0,0.25);
+            animation:fadeIn .5s ease;
+        }
+
+        @keyframes fadeIn{
+            from{opacity:0; transform:translateY(10px);}
+            to{opacity:1; transform:translateY(0);}
+        }
+
+        /* TITLE */
+        .title{
+            text-align:center;
+            font-size:28px;
+            font-weight:700;
+            color:#062045;
+            margin-bottom:10px;
+        }
+
+        /* SUBTEXT */
+        .subtext{
+            font-size:15px;
+            line-height:1.5;
+            color:#3a4a67;
+            text-align:center;
+            margin-bottom:22px;
+        }
+
+        /* INPUT */
+        input{
+            width:100%;
+            padding:14px;
+            border-radius:10px;
+            border:1px solid #bfc7d8;
+            font-size:16px;
+            transition:.2s ease;
+            box-sizing:border-box;
+        }
+
+        input:focus{
+            border-color:#0b3a84;
+            box-shadow:0 0 8px rgba(11,58,132,0.25);
+            outline:none;
+        }
+
+        /* BUTTON */
+        .btn{
+            width:100%;
+            margin-top:22px;
+            padding:14px;
+            background:#f7d65b;
+            border:none;
+            border-radius:12px;
+            font-size:18px;
+            font-weight:700;
+            cursor:pointer;
+            transition:.25s ease;
+        }
+
+        .btn:hover{
+            background:#ffdd4d;
+            transform:translateY(-2px);
+        }
+
+        /* ERROR MESSAGE */
+        .msg{
+            color:red;
+            text-align:center;
+            font-weight:600;
+            margin-top:15px;
+        }
+
     </style>
 </head>
+
 <body>
-<div class="box">
-    <h2 style="text-align:center">Link Parent / Guardian</h2>
 
-    <p>Enter your parent/guardian’s <b>Account Number</b>. For a Minor Account,
-        a parent or guardian must be linked to ensure secure handling of transactions and approvals.
-       </p>
+<div class="card">
 
-    <!-- ✅ Corrected Form Action -->
+    <div class="title">Link Parent / Guardian</div>
+
+    <div class="subtext">
+        Enter your parent or guardian’s <b>Account Number</b>.<br>
+        This step ensures secure approval and verification for<br>
+        creating a Minor Account.
+    </div>
+
+    <!-- FORM -->
     <form th:action="@{/minor/guardian-lookup}" method="post">
 
-        <!-- Keeps minor email in flow -->
+        <!-- Store minor's email during process -->
         <input type="hidden" name="minorEmail" th:value="${minorEmail}">
 
+        <input type="text" name="guardianAccountNumber"
+               placeholder="Enter Guardian Account Number"
+               required />
 
-        <input type="text" name="guardianAccountNumber" required />
-
-        <button type="submit">Send OTP to Guardian</button>
+        <button type="submit" class="btn">Send OTP to Guardian</button>
     </form>
 
     <p class="msg" th:if="${error}" th:text="${error}"></p>
+
 </div>
+
 </body>
 </html>

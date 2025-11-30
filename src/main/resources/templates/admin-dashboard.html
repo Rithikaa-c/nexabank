@@ -148,6 +148,13 @@
 <div class="container">
 
     <div class="welcome-text">Welcome, <span th:text="${loggedAdmin.fullName}"></span> 👋</div>
+    <p style="font-size:14px; color:white;">
+        <strong>🕒Last Login:</strong>
+        <span th:text="${formattedLastLogin}"></span> <br>
+
+        <strong>📍From:</strong>
+        <span th:text="${formattedIp}"></span>
+    </p>
 
     <!-- DASHBOARD SUMMARY CARDS -->
     <div class="card-row">
@@ -210,12 +217,42 @@
             <h4>User Logs</h4>
             <p>View system activity logs</p>
         </div>
+        <div class="action-box" onclick="location.href='/admin/activity-heatmap'">
+            <h4>Activity Heatmap</h4>
+            <p>View weekly system usage</p>
+        </div>
 
     </div>
 
     </div>
 
-</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const weeklyLabels = [[${weeklyActivity.keySet()}]];
+    const weeklyData = [[${weeklyActivity.values()}]];
+
+    const ctx = document.getElementById('weeklyChart');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: weeklyLabels,
+            datasets: [{
+                label: 'Transactions',
+                data: weeklyData,
+                backgroundColor: '#f5c542'
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false }},
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
 
 </body>
 </html>

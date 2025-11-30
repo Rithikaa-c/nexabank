@@ -226,6 +226,14 @@
         </div>
 
         <div class="summary-right">
+            <p style="font-size:14px; color:#324c7e;">
+                <strong>🕒Last Login:</strong>
+                <span th:text="${formattedLastLogin}"></span> <br>
+
+                <strong>📍From:</strong>
+                <span th:text="${formattedIp}"></span>
+            </p>
+
             <p class="small-label">Account Age</p>
             <div class="account-age-value" th:text="${accountAge}">
                 0 years 0 months 0 days
@@ -234,6 +242,7 @@
 
     </div>
 </div>
+
 
 <!-- ACTION CARDS -->
 <div class="cards-container">
@@ -414,6 +423,196 @@
             modal.style.visibility = "hidden";
         }
     });
+</script>
+<!-- ======================================================
+     NEXA AI CHATBOT — VERSION 3.1 (BUG FIXED)
+     Paste this ABOVE </body>
+======================================================== -->
+
+<!-- Hidden account -->
+<input type="hidden" id="acc-number-for-chat" th:value="${accNumber}"/>
+
+<style>
+    /* Floating Chat Button */
+    #chatbot-btn {
+        position: fixed !important;
+        bottom: 25px !important;
+        right: 25px !important;
+        background: #ffcc33;
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 28px;
+        cursor: pointer;
+        z-index: 9999 !important;
+        box-shadow: 0px 5px 18px rgba(0,0,0,0.25);
+    }
+
+    #chatbot-window {
+        position: fixed !important;
+        bottom: 100px !important;
+        right: 25px !important;
+        width: 360px;
+        height: 480px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0px 8px 30px rgba(0,0,0,0.25);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 99999 !important;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .chat-chip {
+        background:#062045;
+        color:white;
+        padding:6px 12px;
+        border-radius:8px;
+        margin:5px;
+        cursor:pointer;
+        font-size:13px;
+        display:inline-block;
+    }
+    .chat-chip:hover {
+        background:#ffcc33;
+        color:#062045;
+        font-weight:700;
+    }
+</style>
+
+<!-- Chat Button -->
+<div id="chatbot-btn">🤖</div>
+
+<!-- Chat Window -->
+<div id="chatbot-window">
+    <div style="background:#062045; color:white; padding:14px; text-align:center; font-size:17px; font-weight:600;">
+        Nexa AI Assistant 💬
+    </div>
+
+    <div id="chat-area" style="flex:1; padding:12px; overflow-y:auto; background:#f5f7fb;"></div>
+
+    <div id="suggestedBtns"
+         style="padding:8px; text-align:center; background:white; display:none;"></div>
+
+    <div style="padding:10px; display:flex; gap:8px; background:white;">
+        <input id="chat-input" type="text"
+               placeholder="Ask me anything..."
+               style="flex:1; padding:10px; border:1px solid #d6dfe9; border-radius:8px;">
+        <button id="chat-send"
+                style="padding:10px 12px; background:#ffcc33; border:none; border-radius:8px; font-weight:700;">
+            Send
+        </button>
+    </div>
+</div>
+
+<script>
+    const btn = document.getElementById("chatbot-btn");
+    const win = document.getElementById("chatbot-window");
+    const chat = document.getElementById("chat-area");
+    const chatInput = document.getElementById("chat-input");
+    const chatSend = document.getElementById("chat-send");
+    const sugg = document.getElementById("suggestedBtns");
+    const accHidden = document.getElementById("acc-number-for-chat");
+
+    /* OPEN/CLOSE Chat */
+    btn.onclick = () => {
+        win.style.display = (win.style.display === "flex") ? "none" : "flex";
+
+        if (win.style.display === "flex") {
+            chatInput.focus();
+
+            if (!chat.dataset.loaded) {
+                chat.dataset.loaded = "true";
+                loadWelcome();
+            }
+        }
+    };
+
+    /* Load welcome only once */
+    function loadWelcome() {
+        fetch("/chatbot?message=__welcome__")
+            .then(r => r.text())
+            .then(reply => showBot(reply));
+    }
+
+    /* Add Message */
+    function addMessage(text, sender) {
+        const div = document.createElement("div");
+        div.style.margin = "8px 0";
+        div.style.display = "flex";
+        div.style.justifyContent = sender === "user" ? "flex-end" : "flex-start";
+
+        const bubble = document.createElement("div");
+        bubble.style.maxWidth = "80%";
+        bubble.style.padding = "8px 12px";
+        bubble.style.borderRadius = "12px";
+        bubble.style.background = sender === "user" ? "#ffcc33" : "#e5e8ef";
+        bubble.style.color = "#062045";
+
+        if (sender === "user") bubble.innerText = text;
+        else bubble.innerHTML = text;
+
+        div.appendChild(bubble);
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    /* Show Bot Reply + Chips */
+    function showBot(reply) {
+        addMessage(reply, "bot");
+
+        const chips = reply.match(/<button class='chat-chip'[^>]*>.*?<\/button>/g);
+        if (chips) {
+            sugg.innerHTML = chips.map(c =>
+                c.replace(
+                    "class='chat-chip'",
+                    "class='chat-chip' onclick=\"quickAsk(this.innerText)\""
+                )
+            ).join("");
+            sugg.style.display = "block";
+        } else {
+            sugg.style.display = "none";
+        }
+    }
+
+    /* Send to backend */
+    async function sendToBackend(text) {
+        const acc = accHidden ? accHidden.value : "";
+        const url = `/chatbot?message=${encodeURIComponent(text)}&accNumber=${encodeURIComponent(acc)}`;
+        const res = await fetch(url);
+        return await res.text();
+    }
+
+    /* Main Send Function */
+    async function handleSend() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        addMessage(text, "user");
+        chatInput.value = "";
+
+        let tmp = document.createElement("div");
+        tmp.innerHTML = "Typing...";
+        chat.appendChild(tmp);
+
+        const reply = await sendToBackend(text);
+
+        tmp.remove();
+        showBot(reply);
+    }
+
+    chatSend.onclick = handleSend;
+    chatInput.onkeydown = e => { if (e.key === "Enter") handleSend(); };
+
+    /* Quick Ask Buttons */
+    function quickAsk(text) {
+        chatInput.value = text;
+        handleSend();
+    }
 </script>
 
 </body>

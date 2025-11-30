@@ -15,6 +15,8 @@ public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private LocalDateTime lastLoginTime;
+    private String lastLoginIp;
 
     private String accountNumber;
     private String holderName;
@@ -31,7 +33,11 @@ public class Account {
     private boolean minor; // true = minor account, false = major account
     private String guardianAccountNumber; // Parent/guardian account number
     private java.time.LocalDateTime guardianVerifiedAt; // when guardian verified OTP
+    public LocalDateTime getLastLoginTime() { return lastLoginTime; }
+    public void setLastLoginTime(LocalDateTime lastLoginTime) { this.lastLoginTime = lastLoginTime; }
 
+    public String getLastLoginIp() { return lastLoginIp; }
+    public void setLastLoginIp(String lastLoginIp) { this.lastLoginIp = lastLoginIp; }
     private LocalDate dob; // For age checking
     public boolean isMinor() {
         return minor;

@@ -38,6 +38,39 @@ public class OtpService {
 
         mailSender.send(message);
     }
+    // -----------------------------------------------
+// SEND OTP TO GUARDIAN FOR MINOR ACCOUNT LINKING
+// -----------------------------------------------
+    public void sendGuardianOtp(String email) {
+
+        // generate random 6-digit OTP
+        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+
+        // store OTP with 2-minute validity
+        otpStore.put(email, otp);
+        otpTime.put(email, System.currentTimeMillis() + (2 * 60 * 1000));
+
+        // Send email
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Parent/Guardian Verification OTP - Nexa Bank");
+        message.setText("Your OTP for verifying as Guardian is: " + otp);
+
+        mailSender.send(message);
+    }
+    public void sendMinorOtp(String minorEmail) {
+        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+
+        otpStore.put(minorEmail, otp);
+        otpTime.put(minorEmail, System.currentTimeMillis() + (2 * 60 * 1000));
+
+        SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setTo(minorEmail);
+        msg.setSubject("Nexa Bank - Minor Account OTP");
+        msg.setText("Your OTP is: " + otp);
+
+        mailSender.send(msg);
+    }
 
     public boolean verifyOtp(String email, String enteredOtp) {
         if (!otpStore.containsKey(email)) return false;
