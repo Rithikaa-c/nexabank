@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Rollback Transfers</title>
+    <style>
+        body { font-family: "Segoe UI", sans-serif; background:#0d1b3d; color:white; margin:0; padding:30px; }
+        .wrap { max-width:1100px; margin:0 auto; }
+        h1 { color:#f5c542; }
+        .msg { margin:12px 0; font-weight:700; }
+        .error { color:#ff8b8b; }
+        .success { color:#7dff7d; }
+
+        table {
+            width:100%;
+            border-collapse:collapse;
+            margin-top:18px;
+            background:#071635;
+            border-radius:8px;
+            overflow:hidden;
+        }
+        th, td {
+            padding:12px 10px;
+            text-align:left;
+            border-bottom:1px solid rgba(255,255,255,0.06);
+            font-size:14px;
+            color:#e6eefc;
+        }
+        th { background: rgba(255,255,255,0.04); color:#f5c542; font-weight:700; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .small { font-size:12px; color:#cfd6e6; }
+
+        .btn-rollback {
+            background: #d9534f;
+            color: white;
+            padding:8px 12px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-weight:700;
+        }
+        .btn-rollback:hover { background:#c0392b; }
+
+        .meta { margin-top:8px; color:#cfd6e6; font-size:13px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>Rollback Transfers</h1>
+
+    <div th:if="${error}" class="msg error" th:text="${error}"></div>
+    <div th:if="${success}" class="msg success" th:text="${success}"></div>
+
+    <p class="meta">Only transactions of type <strong>TRANSFER</strong> are shown. Click <em>Rollback</em> to reverse money (recipient → sender).</p>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Txn ID</th>
+            <th>Date</th>
+            <th>Sender</th>
+            <th>Receiver</th>
+            <th>Amount (₹)</th>
+            <th>Reason</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="t : ${transfers}">
+            <td th:text="${t.transactionId}"></td>
+            <td th:text="${#dates.format(t.createdAt, 'dd-MMM-yyyy HH:mm')}"></td>
+            <td>
+                <div th:text="${t.senderAccountNumber}"></div>
+            </td>
+            <td th:text="${t.receiverAccountNumber}"></td>
+            <td th:text="${t.amount}"></td>
+            <td th:text="${t.reason} ?: ' - '"></td>
+            <td>
+                <form th:action="@{/admin/rollback}" method="post" onsubmit="return confirm('Rollback this transfer? This will debit receiver and credit sender.');">
+                    <input type="hidden" name="transactionId" th:value="${t.transactionId}" />
+                    <button type="submit" class="btn-rollback">Rollback</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${transfers.size()==0}">
+            <td colspan="7" style="text-align:center; color:#cfd6e6; padding:30px;">No transfer transactions found.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
