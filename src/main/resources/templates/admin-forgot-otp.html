@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin OTP Verification - Nexa Bank</title>
+
+    <style>
+        body {
+            background: linear-gradient(to right, #0d1b3d, #1d3a73);
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .box {
+            width: 480px;
+            background: white;
+            padding: 40px 45px;
+            border-radius: 22px;
+            text-align: center;
+            box-shadow: 0 0 35px rgba(0,0,0,0.25);
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #102c57;
+            margin-bottom: 10px;
+        }
+
+        .email-text {
+            color: #0d1b3d;
+            font-size: 15px;
+            margin-bottom: 25px;
+        }
+
+        .otp-boxes {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .otp-input {
+            width: 48px;
+            height: 55px;
+            font-size: 24px;
+            text-align: center;
+            border-radius: 12px;
+            border: 2px solid #cfd6e1;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .otp-input:focus {
+            border-color: #102c57;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+
+        .error {
+            color: red;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .success {
+            color: green;
+            font-weight: 600;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            background: #f5c542;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: 700;
+            color: #0d1b3d;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #e4b634;
+        }
+
+        .timer {
+            color: #d00000;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        /* RESEND BUTTON */
+        .resend-btn {
+            width: 100%;
+            padding: 15px;
+            background: #102c57;
+            margin-top: 18px;
+            font-size: 17px;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .resend-btn:hover {
+            background: #0a2a63 !important;
+        }
+
+        .resend-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #102c57 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+
+    <h2>Enter OTP</h2>
+
+    <p class="email-text">Sent to: <span th:text="${email}"></span></p>
+
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+    <p class="success" th:if="${message}" th:text="${message}"></p>
+
+    <!-- OTP FORM -->
+    <form method="post" action="/admin/verify-forgot-otp" id="otpForm">
+        <input type="hidden" name="email" th:value="${email}">
+        <input type="hidden" name="adminId" th:value="${adminId}">
+
+        <div class="otp-boxes">
+            <input maxlength="1" class="otp-input" />
+            <input maxlength="1" class="otp-input" />
+            <input maxlength="1" class="otp-input" />
+            <input maxlength="1" class="otp-input" />
+            <input maxlength="1" class="otp-input" />
+            <input maxlength="1" class="otp-input" />
+        </div>
+
+        <input type="hidden" name="otp" id="fullOtp">
+
+        <button type="submit">Verify</button>
+    </form>
+
+    <!-- TIMER -->
+    <p class="timer" id="timerText">OTP expires in 2:00</p>
+
+    <!-- RESEND OTP -->
+    <form method="post" action="/admin/send-forgot-otp">
+        <input type="hidden" name="adminId" th:value="${adminId}">
+        <button type="submit" class="resend-btn" id="resendBtn" disabled>Resend OTP</button>
+    </form>
+
+</div>
+
+<script>
+    // AUTO FOCUS OTP
+    const inputs = document.querySelectorAll(".otp-input");
+    inputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+            input.value = input.value.replace(/[^0-9]/g, "");
+            if (input.value.length === 1 && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+            collectOtp();
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && index > 0 && input.value === "") {
+                inputs[index - 1].focus();
+            }
+        });
+    });
+
+    function collectOtp() {
+        let otp = "";
+        inputs.forEach(i => otp += i.value);
+        document.getElementById("fullOtp").value = otp;
+    }
+
+    // TIMER LOGIC
+    let timeLeft = 120;
+    let resendBtn = document.getElementById("resendBtn");
+    let timerText = document.getElementById("timerText");
+
+    const countdown = setInterval(() => {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+
+        timerText.innerHTML = `OTP expires in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if (timeLeft === 0) {
+            clearInterval(countdown);
+            resendBtn.disabled = false;
+            timerText.innerHTML = "OTP expired!";
+        }
+
+        timeLeft--;
+    }, 1000);
+</script>
+
+</body>
+</html>

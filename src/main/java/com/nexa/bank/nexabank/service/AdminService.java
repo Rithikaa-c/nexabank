@@ -21,6 +21,9 @@ public class AdminService {
     public AdminService(AdminRepository repo) {
         this.repo = repo;
     }
+    public Admin findByAdminId(String adminId) {
+        return repo.findByAdminId(adminId).orElse(null);
+    }
 
     // -----------------------------------------
     // VALIDATE LOGIN

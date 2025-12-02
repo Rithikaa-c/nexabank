@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
 import java.util.Optional;
 @Transactional
 
@@ -30,7 +32,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Account a where a.accountNumber = :acc")
     Optional<Account> findByAccountNumberForUpdate(@Param("acc") String acc);
-
+    @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a")
+    BigDecimal getTotalBalances();
     @Modifying
     @Query("UPDATE Account a SET a.cardFrozen = :status WHERE a.accountNumber = :acc")
     void updateFreezeStatus(@Param("acc") String acc, @Param("status") boolean status);

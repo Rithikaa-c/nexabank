@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
 
@@ -35,5 +36,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')
     """, nativeQuery = true)
     List<Object[]> getLast7DaysActivity();
+    // add near other method signatures
+    Optional<Transaction> findByTransactionId(String transactionId);
+
+    @Query("SELECT t FROM Transaction t WHERE t.type = :type ORDER BY t.createdAt DESC")
+    List<Transaction> findByTypeOrderByCreatedAtDesc(@Param("type") String type);
 
 }

@@ -131,9 +131,17 @@ public class Transaction {
     public LocalDateTime getTransactionTime() {
         return transactionTime;
     }
+    @Column(name = "rolled_back")
+    private Boolean rolledBack = false;
 
     public void setTransactionTime(LocalDateTime transactionTime) {
         this.transactionTime = transactionTime;
     }
+    public Boolean getRolledBack() {
+        return rolledBack;
+    }
 
+    public void setRolledBack(Boolean rolledBack) {
+        this.rolledBack = rolledBack;
+    }
 }

@@ -178,7 +178,10 @@
             <h3>Total Transactions</h3>
             <p th:text="${transactionCount}">0</p>
         </div>
-
+        <div class="card">
+            <h3>Total Bank Balance</h3>
+            <p th:text="${totalBalanceFormatted}">₹0.00</p>
+        </div>
     </div>
 
     <!-- ACTIONS SECTION -->
@@ -221,6 +224,15 @@
             <h4>Activity Heatmap</h4>
             <p>View weekly system usage</p>
         </div>
+        <div class="action-box" onclick="location.href='/admin/rollback'">
+            <h4>Rollback Requests</h4>
+            <p>View and process refund/rollback complaints</p>
+        </div>
+        <div class="action-box" onclick="location.href='/admin/send-notice'">
+            <h4>Send Notice</h4>
+            <p>Send important notices to users</p>
+        </div>
+
 
     </div>
 

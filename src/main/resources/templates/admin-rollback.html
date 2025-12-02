@@ -3,10 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin - Rollback Transfers</title>
+
     <style>
-        body { font-family: "Segoe UI", sans-serif; background:#0d1b3d; color:white; margin:0; padding:30px; }
-        .wrap { max-width:1100px; margin:0 auto; }
-        h1 { color:#f5c542; }
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background:#0d1b3d;
+            color:white;
+            margin:0;
+            padding:0;
+        }
+
+        /* HEADER BAR */
+        .header {
+            background:#071635;
+            padding:18px 30px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            border-bottom:2px solid rgba(255,255,255,0.1);
+        }
+
+        .header-title {
+            color:#f5c542;
+            font-size:28px;
+            font-weight:700;
+        }
+
+        .dashboard-btn {
+            background:#f5c542;
+            color:#0d1b3d;
+            padding:10px 18px;
+            border-radius:10px;
+            font-weight:700;
+            text-decoration:none;
+        }
+        .dashboard-btn:hover {
+            background:#e6b93d;
+        }
+
+        .wrap {
+            max-width:1100px;
+            margin:40px auto;
+            padding:0 30px;
+        }
+
+        h1 {
+            color:#f5c542;
+        }
+
         .msg { margin:12px 0; font-weight:700; }
         .error { color:#ff8b8b; }
         .success { color:#7dff7d; }
@@ -26,10 +70,12 @@
             font-size:14px;
             color:#e6eefc;
         }
-        th { background: rgba(255,255,255,0.04); color:#f5c542; font-weight:700; }
+        th {
+            background: rgba(255,255,255,0.04);
+            color:#f5c542;
+            font-weight:700;
+        }
         tr:hover td { background: rgba(255,255,255,0.02); }
-
-        .small { font-size:12px; color:#cfd6e6; }
 
         .btn-rollback {
             background: #d9534f;
@@ -42,17 +88,70 @@
         }
         .btn-rollback:hover { background:#c0392b; }
 
-        .meta { margin-top:8px; color:#cfd6e6; font-size:13px; }
+        .btn-done {
+            background: #28a745;
+            color:white;
+            padding:8px 12px;
+            border:none;
+            border-radius:6px;
+            font-weight:700;
+        }
+
+        /* Modal */
+        #confirmModal {
+            position: fixed;
+            top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.7);
+            display:none;
+            justify-content:center;
+            align-items:center;
+        }
+
+        .modal-box {
+            background:white;
+            color:black;
+            padding:20px;
+            border-radius:10px;
+            width:300px;
+            text-align:center;
+        }
+
+        .btn-modal-confirm {
+            background:#d9534f;
+            color:white;
+            padding:8px 12px;
+            border:none;
+            border-radius:5px;
+            margin-right:10px;
+        }
+
+        .btn-modal-cancel {
+            background:#aaa;
+            color:white;
+            padding:8px 12px;
+            border:none;
+            border-radius:5px;
+        }
     </style>
+
 </head>
 <body>
+
+<!-- HEADER BAR -->
+<div class="header">
+    <div class="header-title">Rollback Transfers</div>
+    <a href="/admin-dashboard" class="dashboard-btn">← Dashboard</a>
+</div>
+
 <div class="wrap">
-    <h1>Rollback Transfers</h1>
 
     <div th:if="${error}" class="msg error" th:text="${error}"></div>
     <div th:if="${success}" class="msg success" th:text="${success}"></div>
 
-    <p class="meta">Only transactions of type <strong>TRANSFER</strong> are shown. Click <em>Rollback</em> to reverse money (recipient → sender).</p>
+    <p class="meta">
+        Only transactions of type <strong>TRANSFER</strong> are shown.
+        Click <em>Rollback</em> to return money (receiver ➝ sender).
+    </p>
 
     <table>
         <thead>
@@ -66,28 +165,69 @@
             <th>Action</th>
         </tr>
         </thead>
+
         <tbody>
         <tr th:each="t : ${transfers}">
             <td th:text="${t.transactionId}"></td>
-            <td th:text="${#dates.format(t.createdAt, 'dd-MMM-yyyy HH:mm')}"></td>
-            <td>
-                <div th:text="${t.senderAccountNumber}"></div>
-            </td>
+            <td th:text="${@dateUtil.format(t.createdAt)}"></td>
+
+            <td th:text="${t.senderAccountNumber}"></td>
             <td th:text="${t.receiverAccountNumber}"></td>
             <td th:text="${t.amount}"></td>
-            <td th:text="${t.reason} ?: ' - '"></td>
+            <td th:text="${t.reason} ?: '-'"></td>
+
             <td>
-                <form th:action="@{/admin/rollback}" method="post" onsubmit="return confirm('Rollback this transfer? This will debit receiver and credit sender.');">
-                    <input type="hidden" name="transactionId" th:value="${t.transactionId}" />
+                <!-- Already rolled back -->
+                <button th:if="${t.rolledBack}" class="btn-done" disabled>Rolled Back</button>
+
+                <!-- Not rolled back yet -->
+                <form th:if="${!t.rolledBack}" class="rollbackForm" th:action="@{/admin/rollback}" method="post">
+                    <input type="hidden" name="transactionId" th:value="${t.transactionId}">
                     <button type="submit" class="btn-rollback">Rollback</button>
                 </form>
             </td>
         </tr>
+
         <tr th:if="${transfers.size()==0}">
-            <td colspan="7" style="text-align:center; color:#cfd6e6; padding:30px;">No transfer transactions found.</td>
+            <td colspan="7" style="text-align:center; color:#cfd6e6; padding:30px;">
+                No transfer transactions found.
+            </td>
         </tr>
+
         </tbody>
     </table>
 </div>
+
+<!-- MODAL -->
+<div id="confirmModal">
+    <div class="modal-box">
+        <h3>Confirm Rollback</h3>
+        <p>This will debit the receiver and credit the sender.</p>
+
+        <button id="confirmYes" class="btn-modal-confirm">Yes</button>
+        <button id="confirmNo" class="btn-modal-cancel">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let selectedForm = null;
+
+    document.querySelectorAll(".rollbackForm").forEach(form => {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            selectedForm = form;
+            document.getElementById("confirmModal").style.display = "flex";
+        });
+    });
+
+    document.getElementById("confirmYes").onclick = function() {
+        if (selectedForm) selectedForm.submit();
+    };
+
+    document.getElementById("confirmNo").onclick = function() {
+        document.getElementById("confirmModal").style.display = "none";
+    };
+</script>
+
 </body>
 </html>

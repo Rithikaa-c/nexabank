@@ -21,9 +21,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -181,15 +183,23 @@ public class AdminController {
         if (admin == null) return "redirect:/admin-login";
 
         model.addAttribute("loggedAdmin", admin);
+
+        // --- Dashboard Stats ---
         model.addAttribute("totalAccounts", dashboardService.getTotalAccounts());
         model.addAttribute("activeAccounts", dashboardService.getActiveAccounts());
         model.addAttribute("frozenAccounts", dashboardService.getFrozenAccounts());
         model.addAttribute("transactionCount", dashboardService.getTransactionCount());
 
-        // ⭐ Weekly Activity Chart Data
+        // --- ⭐ TOTAL BANK BALANCE ---
+        BigDecimal totalBalance = dashboardService.getTotalBankBalance();
+        String formattedBalance = "₹" + totalBalance.toPlainString();
+
+        model.addAttribute("totalBalanceFormatted", formattedBalance);
+
+        // --- Weekly Activity Chart Data ---
         model.addAttribute("weeklyActivity", adminService.getWeeklyActivity());
 
-        // Format login time
+        // --- Last Login Formatting ---
         if (admin.getLastLoginTime() != null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
             model.addAttribute("formattedLastLogin", admin.getLastLoginTime().format(formatter));
@@ -197,16 +207,19 @@ public class AdminController {
             model.addAttribute("formattedLastLogin", "First Login");
         }
 
-        // Format IP
+        // --- IP Formatting ---
         String ip = admin.getLastLoginIp();
         if (ip == null) ip = "Unknown";
-        if (ip.equals("0:0:0:0:0:0:0:1"))
+
+        if ("0:0:0:0:0:0:0:1".equals(ip)) {
             model.addAttribute("formattedIp", "Localhost (127.0.0.1)");
-        else
+        } else {
             model.addAttribute("formattedIp", ip);
+        }
 
         return "admin-dashboard";
     }
+
 
     // ------------------------------------------
     // VIEW ALL ACCOUNTS
@@ -648,5 +661,182 @@ public class AdminController {
         return "admin-heatmap";
     }
 
+    @GetMapping("/admin/forgot-password")
+    public String adminForgotPassword() {
+        return "admin-forgot-password";
+    }
+    @PostMapping("/admin/send-forgot-otp")
+    public String sendForgotOtp(@RequestParam String adminId,
+                                Model model,
+                                HttpSession session) {
+
+        Admin admin = adminService.findByAdminId(adminId);
+
+        if (admin == null) {
+            model.addAttribute("error", "Admin ID not found!");
+            return "admin-forgot-password";
+        }
+
+        session.setAttribute("forgotAdmin", admin);
+
+        otpService.generateAndSendOtp(admin.getEmail(), mailSender);
+
+        model.addAttribute("email", admin.getEmail());
+        model.addAttribute("adminId", adminId); // ⭐ ADD THIS
+        return "admin-forgot-otp";
+    }
+
+    @PostMapping("/admin/verify-forgot-otp")
+    public String verifyForgotOtp(@RequestParam String email,
+                                  @RequestParam String otp,
+                                  HttpSession session,
+                                  Model model) {
+
+        boolean valid = otpService.verifyOtp(email, otp);
+
+        if (!valid) {
+            model.addAttribute("email", email);
+            model.addAttribute("error", "Invalid OTP. Try again.");
+            return "admin-forgot-otp";
+        }
+
+        Admin admin = (Admin) session.getAttribute("forgotAdmin");
+        session.setAttribute("resetAdmin", admin);
+
+        return "redirect:/admin/reset-password";
+    }
+    @GetMapping("/admin/reset-password")
+    public String showResetPassword(HttpSession session, Model model) {
+
+        Admin admin = (Admin) session.getAttribute("resetAdmin");
+
+        if (admin == null) {
+            return "redirect:/admin-login";
+        }
+
+        model.addAttribute("adminId", admin.getAdminId());
+        return "admin-reset-password";
+    }
+
+    @PostMapping("/admin/reset-password")
+    public String saveAdminPassword(@RequestParam String newPassword,
+                                    @RequestParam String confirmPassword,
+                                    HttpSession session,
+                                    Model model) {
+
+        Admin admin = (Admin) session.getAttribute("resetAdmin");
+
+        if (admin == null) {
+            model.addAttribute("error", "Session expired. Please try again.");
+            return "admin-reset-password";
+        }
+
+        // password match check
+        if (!newPassword.equals(confirmPassword)) {
+            model.addAttribute("error", "Passwords do not match.");
+            return "admin-reset-password";
+        }
+
+        // password strength check (backend)
+        if (newPassword.length() < 8 ||
+                !newPassword.matches(".*[A-Z].*") ||
+                !newPassword.matches(".*[a-z].*") ||
+                !newPassword.matches(".*[0-9].*") ||
+                !newPassword.matches(".*[!@#$%^&*?_].*")) {
+
+            model.addAttribute("error", "Password does not meet security requirements.");
+            return "admin-reset-password";
+        }
+
+        // check not same as current password
+        if (admin.getPassword().equals(newPassword)) {
+            model.addAttribute("error", "New password cannot be the same as current password.");
+            return "admin-reset-password";
+        }
+
+        // finally update
+        admin.setPassword(newPassword);
+        adminService.saveAdmin(admin);
+
+        // clear session
+        session.removeAttribute("resetAdmin");
+
+        // success message (stays on same page)
+        model.addAttribute("success", "Password updated successfully!");
+
+        return "admin-reset-password";  // DO NOT redirect
+    }
+
+    /* NOTICE PAGE */
+    @GetMapping("/admin/send-notice")
+    public String showNoticePage(HttpSession session) {
+
+        if (session.getAttribute("loggedAdmin") == null)
+            return "redirect:/admin-login";
+
+        return "admin-send-notice";
+    }
+
+    /* AUTO-FETCH EMAIL API */
+    @GetMapping("/admin/get-email/{accountNumber}")
+    @ResponseBody
+    public String getEmail(@PathVariable String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .map(Account::getEmail)
+                .orElse("NOT_FOUND");
+    }
+
+    /* SEND NOTICE */
+    @PostMapping("/admin/send-notice")
+    public String sendNotice(
+            @RequestParam String sendType,
+            @RequestParam(required = false) String accountNumber,
+            @RequestParam String subject,
+            @RequestParam String message,
+            RedirectAttributes ra,
+            HttpSession session) {
+
+        Admin admin = (Admin) session.getAttribute("loggedAdmin");
+        if (admin == null) {
+            ra.addFlashAttribute("error", "Please login as admin.");
+            return "redirect:/admin-login";
+        }
+
+        try {
+            if (sendType.equals("ALL")) {
+
+                // SEND EMAIL TO ALL ACCOUNTS
+                accountRepository.findAll().forEach(acc ->
+                        emailService.sendEmail(acc.getEmail(), subject, message)
+                );
+
+                // ⭐ LOG ACTION
+                logRepository.save(new AdminLog(admin.getAdminId(), "ALL_ACCOUNTS", "NOTICE_ALL"));
+
+                ra.addFlashAttribute("success", "Notice sent to ALL users!");
+            }
+            else {
+
+                Account acc = accountRepository.findByAccountNumber(accountNumber).orElse(null);
+
+                if (acc == null) {
+                    ra.addFlashAttribute("error", "Account not found!");
+                    return "redirect:/admin/send-notice";
+                }
+
+                emailService.sendEmail(acc.getEmail(), subject, message);
+
+                // ⭐ LOG ACTION (single user)
+                logRepository.save(new AdminLog(admin.getAdminId(), accountNumber, "NOTICE_SINGLE"));
+
+                ra.addFlashAttribute("success", "Notice sent to " + acc.getEmail());
+            }
+
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Failed to send notice: " + e.getMessage());
+        }
+
+        return "redirect:/admin/send-notice";
+    }
 
 }

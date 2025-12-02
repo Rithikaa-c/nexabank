@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Send Notice - Nexa Bank Admin</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #0d1b3d;
+            color: white;
+        }
+
+        /* HEADER BAR */
+        .navbar {
+            background: #0b1533;
+            padding: 18px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h2 {
+            color: #f5c542;
+        }
+
+        .dashboard-btn {
+            background: #f5c542;
+            padding: 10px 18px;
+            border-radius: 10px;
+            color: #0d1b3d;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .dashboard-btn:hover { background: #d9ad39; }
+
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: #11265a;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4);
+        }
+
+        h1 { color: #f5c542; }
+
+        label { font-weight: 600; display: block; margin-top: 15px; }
+
+        input, textarea, select {
+            width: 95%;
+            padding: 12px;
+            font-size: 15px;
+            border-radius: 10px;
+            border: none;
+            margin-top: 5px;
+        }
+
+        textarea { height: 120px; resize: none; }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            background: #f5c542;
+            padding: 12px;
+            color: #0d1b3d;
+            border: none;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        button:hover { background: #d9ad39; }
+
+        .msg { padding: 10px; margin-top: 10px; font-weight: bold; }
+        .success { background: #2ecc71; color:white; }
+        .error { background: #e74c3c; color:white; }
+
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="navbar">
+    <h2>Send Notice</h2>
+    <a href="/admin-dashboard" class="dashboard-btn">← Dashboard</a>
+</div>
+
+<div class="container">
+
+    <h1>Send Notice</h1>
+
+    <p th:if="${success}" class="msg success" th:text="${success}"></p>
+    <p th:if="${error}" class="msg error" th:text="${error}"></p>
+
+    <form method="post" action="/admin/send-notice">
+
+        <label>Send To</label>
+        <select name="sendType" id="sendType" onchange="toggleAccountNumber()">
+            <option value="ALL">All Users</option>
+            <option value="ONE">Specific Account</option>
+        </select>
+
+        <div id="accBox" style="display:none;">
+            <label>Account Number</label>
+            <input type="text" name="accountNumber" id="accNum" placeholder="Enter Account Number">
+
+            <label>Email</label>
+            <input type="text" id="emailField" readonly placeholder="Email auto fetched">
+        </div>
+
+        <label>Subject</label>
+        <input type="text" name="subject" required placeholder="Enter notice subject">
+
+        <label>Message</label>
+        <textarea name="message" required placeholder="Write your notice here..."></textarea>
+
+        <button type="submit">Send Notice</button>
+    </form>
+</div>
+
+<script>
+    function toggleAccountNumber() {
+        let type = document.getElementById("sendType").value;
+        document.getElementById("accBox").style.display = (type === "ONE") ? "block" : "none";
+    }
+
+    // AUTO FETCH EMAIL when entering account number
+    document.getElementById("accNum").addEventListener("input", function () {
+        let acc = this.value.trim();
+
+        fetch(`/admin/get-email/${acc}`)
+            .then(res => res.text())
+            .then(email => {
+                document.getElementById("emailField").value = email === "NOT_FOUND" ? "" : email;
+            });
+    });
+</script>
+
+</body>
+</html>
