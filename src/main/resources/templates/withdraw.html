@@ -32,58 +32,115 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
         }
 
-        h2 {
-            color: #0d1b3d;
-            font-size: 28px;
-            font-weight: 700;
-        }
-
-        .subtitle {
-            color: #6d7b99;
-            font-size: 15px;
-            margin-bottom: 25px;
-        }
-
-        input, textarea {
+        input, select, textarea {
             width: 95%;
             padding: 14px;
             border: 2px solid #cfd5e3;
             border-radius: 8px;
-            margin-top: 8px;
             font-size: 16px;
         }
 
-        input:focus, textarea:focus {
-            border-color: #0d1b3d;
+        /* PIN boxes */
+        .pin-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
         }
 
-        .processing-box {
-            display: none;
-            margin-top: 25px;
-            background: #fff7d1;
-            border-left: 5px solid #e6b800;
-            padding: 20px;
-            border-radius: 12px;
-            font-size: 17px;
+        .pin-input {
+            width: 30px;
+            height: 30px;
+            font-size: 22px;
+            text-align: center;
+            border: 2px solid #cfd5e3;
+            border-radius: 8px;
         }
+.pin-container {
+    margin-bottom: 2px;
+}
 
+        .pin-input:focus { border-color: #0d1b3d; }
+.show-pin-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    width: max-content;
+}
+.show-pin-row input {
+    margin: 0;
+    padding: 0;
+}
+
+.show-pin-row label {
+    margin: 0;
+    padding: 0;
+    line-height: 1; /* removes extra height */
+    white-space: nowrap;
+}
+.show-pin-row {
+    white-space: nowrap;
+}
+
+
+        /* SUCCESS & ERROR */
         .success-box {
             margin-top: 25px;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 18px;
+            border-radius: 10px;
             background-color: #e8f7e8;
             color: #0a7b0a;
             border-left: 5px solid #0a7b0a;
-            display: flex;
-            gap: 12px;
-            font-size: 17px;
         }
 
-        .tick {
-            font-size: 24px;
-            color: #0a7b0a;
+        .error-box {
+            margin-top: 25px;
+            padding: 18px;
+            border-left: 5px solid red;
+            background-color: #ffe6e6;
+            color: red;
+            border-radius: 10px;
+            font-weight: 600;
         }
 
+        /* RECEIPT */
+        #receipt-box {
+            margin-top: 25px;
+            border-left: 5px solid #0d1b3d;
+            padding: 20px;
+            border-radius: 12px;
+            background: #ffffff !important;
+        }
+
+        #receipt-box * {
+            color: #000 !important;
+            font-weight: 600;
+        }
+
+        /* FIX ✔ MAKE DOWNLOAD WHITE */
+        #receipt-box .download-btn,
+        #receipt-box .download-btn * {
+            color: #ffffff !important;
+        }
+
+        /* DOWNLOAD BUTTON */
+        .download-btn {
+            margin-top: 15px;
+            width: 100%;
+            padding: 14px;
+            background-color: #0d1b3d !important;
+            color: #ffffff !important;
+            border: none;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* ACTION BUTTONS */
         .button-row {
             display: flex;
             gap: 20px;
@@ -95,120 +152,26 @@
             padding: 14px;
             background-color: #f7d65b;
             color: #0d1b3d;
-            font-size: 17px;
-            font-weight: bold;
+            font-weight: 700;
             border-radius: 10px;
             border: none;
             cursor: pointer;
         }
 
-       .equal-btn-link {
-    width: 50%;
-    padding: 14px;
-    background-color: #0d1b3d;   /* NAVY BLUE */
-    color: #ffffff !important;   /* WHITE TEXT */
-    font-size: 17px;
-    font-weight: bold;
-    border-radius: 10px;
-    text-decoration: none;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
-
-        #receipt-box {
-            margin-top: 25px;
-            border-left: 5px solid #0d1b3d;
-            padding: 20px;
-            border-radius: 12px;
-            background: #ffffff !important;
-        }
-
-        #receipt-box * {
-            color: #000 !important;
-            font-weight: 600 !important;
-        }
-
-
-.download-btn {
-    margin-top: 15px;
-    width: 100%;
-    padding: 14px;
-    background-color: #0d1b3d !important;
-    color: #ffffff !important; /* FIX: Make text white */
-    border: none;
-    border-radius: 8px;
-    font-weight: 900 !important;
-    font-size: 16px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    text-transform: uppercase;
-    text-align: center;
-}
-.download-btn,
-.download-btn *,
-#receipt-box .download-btn,
-#receipt-box .download-btn * {
-    color: #ffffff !important;
-    fill: #ffffff !important;   /* in case it was an SVG */
-    font-weight: 900 !important;
-}
-        .error-box {
-            margin-top: 25px;
-            padding: 15px;
-            border-left: 5px solid red;
-            background-color: #ffe6e6;
-            color: red;
+        .equal-btn-link {
+            width: 50%;
+            padding: 14px;
+            background-color: #0d1b3d;
+            color: #fff !important;
+            font-weight: 700;
             border-radius: 10px;
-            font-weight: 600;
+            text-decoration: none;
+            display:flex;
+            justify-content:center;
+            align-items:center;
         }
 
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <script>
-        function toggleOtherReason() {
-            const dropdown = document.getElementById("reasonSelect");
-            const otherBox = document.getElementById("otherReasonInput");
-
-            otherBox.style.display = dropdown.value === "Other" ? "block" : "none";
-            if (dropdown.value !== "Other") otherBox.value = "";
-        }
-    </script>
-
-    <script>
-        async function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            const receipt = document.getElementById("receipt-box");
-
-            const canvas = await html2canvas(receipt, {
-                scale: 3,
-                backgroundColor: "#ffffff"
-            });
-
-            const imgData = canvas.toDataURL("image/png");
-            const pdf = new jsPDF("p", "pt", "a4");
-
-            const imgWidth = 550;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-
-            pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
-            pdf.save("NexaBank_Withdraw_Receipt.pdf");
-        }
-
-        function showProcessing() {
-            document.getElementById("processing").style.display = "block";
-        }
-
-        function playSuccess() {
-            const audio = document.getElementById("successSound");
-            audio.volume = 0.4;
-            audio.play();
-        }
-    </script>
-
 </head>
 
 <body>
@@ -220,23 +183,17 @@
     <h2>Withdraw Money</h2>
     <div class="subtitle">Secure — Fast — Trusted</div>
 
-    <div id="processing" class="processing-box">
-        ⏳ Processing withdrawal… Please wait.
-    </div>
-
     <div th:if="${success}" class="success-box">
-        <div class="tick">✔</div>
-        <strong th:text="${success}"></strong>
-        <script>playSuccess();</script>
+        ✔ <strong th:text="${success}"></strong>
     </div>
 
     <div th:if="${error}" class="error-box">
         <strong th:text="${error}"></strong>
     </div>
 
+    <!-- Receipt -->
     <div th:if="${transactionId}" id="receipt-box">
-
-        <h3 style="font-weight:700;">🧾 Nexa Bank - Withdrawal Receipt</h3>
+        <h3>🧾 Nexa Bank - Withdrawal Receipt</h3>
 
         <p><strong>Transaction ID:</strong> <span th:text="${transactionId}"></span></p>
         <p><strong>Date:</strong> <span th:text="${date}"></span></p>
@@ -247,53 +204,99 @@
         <p><strong>Reason:</strong> <span th:text="${reason}"></span></p>
         <p><strong>New Balance:</strong> ₹<span th:text="${updatedBalance}"></span></p>
 
-        <button onclick="downloadPDF()" class="download-btn">
-            DOWNLOAD RECEIPT (PDF)
-        </button>
-
+        <button onclick="downloadPDF()" class="download-btn">DOWNLOAD RECEIPT (PDF)</button>
     </div>
 
-    <form th:action="@{'/withdraw'(accountNumber=${accountNumber})}" method="post" onsubmit="showProcessing()">
+    <form th:action="@{'/withdraw'(accountNumber=${accountNumber})}" method="post" onsubmit="return validatePin()">
 
         <label><strong>Enter Amount</strong></label>
-        <input type="number" name="amount" placeholder="Enter amount" min="1" required />
+        <input type="number" name="amount" min="1" required>
 
-        <label style="margin-top:15px;"><strong>Reason for Withdrawal (Optional)</strong></label>
+        <label style="margin-top:12px;"><strong>Enter PIN</strong></label>
 
-        <select id="reasonSelect" name="reason"
-                style="width: 100%; padding: 14px; border: 2px solid #cfd5e3;
-               border-radius: 8px; font-size: 16px; margin-top: 8px;
-               color:#0d1b3d;" onchange="toggleOtherReason()">
+        <!-- PIN -->
+        <div class="pin-container">
+            <input type="password" maxlength="1" class="pin-input">
+            <input type="password" maxlength="1" class="pin-input">
+            <input type="password" maxlength="1" class="pin-input">
+            <input type="password" maxlength="1" class="pin-input">
+        </div>
 
+        <!-- FIX ✔ TOGETHER IN ONE LINE, NEAR BOXES -->
+        <div class="show-pin-row">
+            <input type="checkbox" id="showPinCheckbox" onclick="togglePinVisibility()">
+            <label for="showPinCheckbox">Show PIN</label>
+        </div>
+
+        <input type="hidden" name="pin" id="fullPin">
+
+        <label><strong>Reason (Optional)</strong></label>
+        <select id="reasonSelect" name="reason" onchange="toggleOtherReason()">
             <option value="" selected>No Reason</option>
             <option value="Personal Expense">Personal Expense</option>
             <option value="Shopping">Shopping</option>
             <option value="Rent Payment">Rent Payment</option>
             <option value="Bill Payment">Bill Payment</option>
-            <option value="Loan EMI">Loan EMI</option>
             <option value="Emergency Expense">Emergency Expense</option>
-            <option value="Travel Expense">Travel Expense</option>
             <option value="Medical Expense">Medical Expense</option>
-            <option value="Education Fee">Education Fee</option>
             <option value="Other">Other</option>
-
         </select>
 
-        <input id="otherReasonInput"
-               type="text"
-               name="otherReason"
-               placeholder="Enter custom reason"
-               style="display:none; width: 95%; padding: 14px; border: 2px solid #0d1b3d;
-              border-radius: 8px; margin-top: 10px; font-size: 16px;" />
+        <input type="text" id="otherReasonInput" name="otherReason"
+               placeholder="Enter custom reason" style="display:none;">
 
         <div class="button-row">
-            <button type="submit" class="equal-btn">Withdraw ₹</button>
-            <a th:href="@{'/dashboard'(accountNumber=${accountNumber})}" class="equal-btn-link">Back to Dashboard</a>
+            <button class="equal-btn">Withdraw ₹</button>
+            <a th:href="@{'/dashboard'(accountNumber=${accountNumber})}" class="equal-btn-link">
+                Back to Dashboard
+            </a>
         </div>
-
     </form>
-
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    function togglePinVisibility() {
+        const show = document.getElementById("showPinCheckbox").checked;
+        document.querySelectorAll(".pin-input").forEach(i => {
+            i.type = show ? "text" : "password";
+        });
+    }
+
+    function validatePin() {
+        let pin = "";
+        document.querySelectorAll(".pin-input").forEach(i => pin += i.value);
+        if (pin.length !== 4) {
+            alert("Please enter 4-digit PIN");
+            return false;
+        }
+        document.getElementById("fullPin").value = pin;
+        return true;
+    }
+
+    function toggleOtherReason() {
+        document.getElementById("otherReasonInput").style.display =
+            (document.getElementById("reasonSelect").value === "Other") ? "block" : "none";
+    }
+    // AUTO MOVE BETWEEN PIN BOXES
+document.querySelectorAll(".pin-input").forEach((box, index, inputs) => {
+
+    box.addEventListener("input", () => {
+        if (box.value.length === 1 && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+        }
+    });
+
+    box.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && box.value === "" && index > 0) {
+            inputs[index - 1].focus();
+        }
+    });
+});
+
+</script>
 
 </body>
 </html>

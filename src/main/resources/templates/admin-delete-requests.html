@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Requests - Nexa Bank</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0d1b3d;
+            color: white;
+        }
+
+        .navbar {
+            background: #0b1533;
+            padding: 18px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h2 { color: #f5c542; margin: 0; }
+        .back-btn { background: #f5c542; color: #0d1b3d; padding: 8px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+
+        .container { padding: 35px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #2b3c66;
+        }
+
+        th {
+            background: #102a54;
+            color: #f5c542;
+        }
+
+        .pending { color: #e6b800; font-weight: bold; }
+        .approved { color: #2ecc71; font-weight: bold; }
+        .rejected { color: #ff6b6b; font-weight: bold; }
+
+        .btn { padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; }
+        .approve-btn { background: #2ecc71; color: black; }
+        .reject-btn { background: #e74c3c; color: white; }
+
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+        }
+
+        .modal-box {
+            width: 450px;
+            background: white;
+            margin: 100px auto;
+            padding: 20px;
+            border-radius: 12px;
+            color: black;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        textarea { height: 80px; }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="navbar">
+    <h2>Delete Account Requests</h2>
+    <a class="back-btn" href="/admin-dashboard">← Back</a>
+</div>
+
+<div class="container">
+    <table>
+        <thead>
+        <tr>
+            <th>Request ID</th>
+            <th>Account Number</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Requested At</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="req : ${requests}" th:attr="data-id=${req.id}">
+            <td th:text="${req.id}"></td>
+            <td th:text="${req.accountNumber}"></td>
+            <td th:text="${req.reason}"></td>
+
+            <td class="status">
+                <span th:if="${req.status == 'PENDING'}" class="pending">PENDING</span>
+                <span th:if="${req.status == 'APPROVED'}" class="approved">APPROVED</span>
+                <span th:if="${req.status == 'REJECTED'}" class="rejected">REJECTED</span>
+            </td>
+
+            <td th:text="${#temporals.format(req.requestedAt, 'dd-MM-yyyy HH:mm')}"></td>
+
+            <td class="actions">
+                <button th:if="${req.status=='PENDING'}"
+                        class="btn approve-btn"
+                        th:onclick="'openApproveModal(' + ${req.id} + ')'">
+                    Approve
+                </button>
+
+                <button th:if="${req.status=='PENDING'}"
+                        class="btn reject-btn"
+                        th:onclick="'openRejectModal(' + ${req.id} + ')'">
+                    Reject
+                </button>
+
+                <span th:if="${req.status!='PENDING'}">-</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+
+<!-- APPROVE MODAL -->
+<div id="approveModal" class="modal-bg">
+    <div class="modal-box">
+        <h3>Approve Account Deletion</h3>
+
+        <label>Select Reason:</label>
+        <select id="approveReason" onchange="toggleApproveOther()">
+            <option>No outstanding loans</option>
+            <option>Sufficient balance maintained</option>
+            <option>Good transaction history</option>
+            <option>Customer requested closure</option>
+            <option>Duplicate account</option>
+            <option>Other</option>
+        </select>
+
+        <textarea id="approveOtherText"
+                  placeholder="Enter custom approval note..."
+                  style="display:none;"></textarea>
+
+        <br><br>
+        <button class="btn approve-btn" onclick="submitApproval()">Confirm Approve</button>
+        <button class="btn" onclick="closeApproveModal()">Cancel</button>
+
+        <input type="hidden" id="approveRequestId">
+    </div>
+</div>
+
+
+<!-- REJECT MODAL -->
+<div id="rejectModal" class="modal-bg">
+    <div class="modal-box">
+        <h3>Reject Account Deletion</h3>
+
+        <label>Select Reason:</label>
+        <select id="rejectReason" onchange="toggleRejectOther()">
+            <option>Loan amount pending</option>
+            <option>Dues not cleared</option>
+            <option>Minimum balance not maintained</option>
+            <option>Account under legal review</option>
+            <option>Other</option>
+        </select>
+
+        <textarea id="rejectOtherText"
+                  placeholder="Enter custom reject reason..."
+                  style="display:none;"></textarea>
+
+        <br><br>
+        <button class="btn reject-btn" onclick="submitRejection()">Confirm Reject</button>
+        <button class="btn" onclick="closeRejectModal()">Cancel</button>
+
+        <input type="hidden" id="rejectRequestId">
+    </div>
+</div>
+
+
+<!-- JAVASCRIPT -->
+<script th:inline="javascript">
+
+    // MODALS
+    function openApproveModal(id) {
+        document.getElementById("approveModal").style.display = "block";
+        document.getElementById("approveRequestId").value = id;
+    }
+
+    function openRejectModal(id) {
+        document.getElementById("rejectModal").style.display = "block";
+        document.getElementById("rejectRequestId").value = id;
+    }
+
+    function closeApproveModal() { document.getElementById("approveModal").style.display = "none"; }
+    function closeRejectModal() { document.getElementById("rejectModal").style.display = "none"; }
+
+    function toggleApproveOther() {
+        document.getElementById("approveOtherText").style.display =
+            (document.getElementById("approveReason").value === "Other") ? "block" : "none";
+    }
+
+    function toggleRejectOther() {
+        document.getElementById("rejectOtherText").style.display =
+            (document.getElementById("rejectReason").value === "Other") ? "block" : "none";
+    }
+
+    // AJAX CALLS
+    function submitApproval() {
+        let id = document.getElementById("approveRequestId").value;
+        let reason = document.getElementById("approveReason").value;
+        if (reason === "Other") reason = document.getElementById("approveOtherText").value;
+
+        fetch(`/admin/delete-approve?id=${id}&note=${encodeURIComponent(reason)}`)
+            .then(() => {
+                updateRow(id, "APPROVED");
+                closeApproveModal();
+            });
+    }
+
+    function submitRejection() {
+        let id = document.getElementById("rejectRequestId").value;
+        let reason = document.getElementById("rejectReason").value;
+        if (reason === "Other") reason = document.getElementById("rejectOtherText").value;
+
+        fetch(`/admin/delete-reject?id=${id}&note=${encodeURIComponent(reason)}`)
+            .then(() => {
+                updateRow(id, "REJECTED");
+                closeRejectModal();
+            });
+    }
+
+    // UPDATE TABLE UI
+    function updateRow(id, status) {
+        let row = document.querySelector(`tr[data-id="${id}"]`);
+
+        row.querySelector(".status").innerHTML =
+            `<span class="${status.toLowerCase()}">${status}</span>`;
+
+        row.querySelector(".actions").innerHTML = `<span>-</span>`;
+    }
+
+</script>
+
+</body>
+</html>

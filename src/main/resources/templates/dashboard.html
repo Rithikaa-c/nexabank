@@ -364,6 +364,33 @@
         <p>Change your ATM/transaction PIN securely.</p>
         <a th:href="@{/change-pin(accountNumber=${accNumber})}" class="btn">Change</a>
     </div>
+    <div class="accent-card">
+        <div class="card-icon">📱</div>
+        <h3>Mobile Recharge</h3>
+        <p>Recharge prepaid, postpaid, and DTH.</p>
+        <a th:href="@{'/recharge'(accountNumber=${accNumber})}" class="btn">Recharge</a>
+    </div>
+
+    <div class="accent-card">
+        <div class="card-icon">💡</div>
+        <h3>Pay Bills</h3>
+        <p>Electricity, Gas, Water, Broadband.</p>
+        <a th:href="@{'/bill-payment'(accountNumber=${accNumber})}" class="btn">Pay Bill</a>
+    </div>
+    <div class="accent-card">
+        <div class="card-icon">📝</div>
+        <h3>Give Feedback</h3>
+        <p>Help us improve Nexa Bank!</p>
+        <button class="btn" onclick="openFeedback()">Give Feedback</button>
+    </div>
+
+    <div class="accent-card">
+        <div class="card-icon">🗑️</div>
+        <h3>Delete Account</h3>
+        <p>Permanently close your account.</p>
+        <a th:href="@{'/delete-account-form'(accountNumber=${accNumber})}" class="btn">Delete</a>
+    </div>
+
 </div>
 
 <footer>
@@ -613,7 +640,87 @@
         chatInput.value = text;
         handleSend();
     }
+    function openFeedback() {
+    const modal = document.getElementById("feedback-modal");
+    modal.style.visibility = "visible";
+    modal.style.opacity = "1";
+}
+
+function closeFeedback() {
+    const modal = document.getElementById("feedback-modal");
+    modal.style.opacity = "0";
+    modal.style.visibility = "hidden";
+}
+
+async function submitFeedback() {
+    const text = document.getElementById("feedback-text").value.trim();
+    const acc = document.getElementById("acc-number-for-chat").value;
+    const successBox = document.getElementById("feedback-success");
+
+    if (!text) {
+        alert("Please enter feedback.");
+        return;
+    }
+
+    const res = await fetch("/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountNumber: acc, message: text })
+    });
+
+    if (res.ok) {
+        // SHOW SUCCESS IN PAGE ✔
+        successBox.style.display = "block";
+
+        // Clear textarea
+        document.getElementById("feedback-text").value = "";
+
+        // Auto hide after 3 secs
+        setTimeout(() => {
+            successBox.style.display = "none";
+        }, 3000);
+    } else {
+        alert("Something went wrong. Try again.");
+    }
+}
+
 </script>
+<!-- FEEDBACK MODAL -->
+<div id="feedback-modal" class="modal" style="
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; justify-content: center; align-items: center;
+    visibility: hidden; opacity: 0; transition: 0.2s;">
+
+    <div style="
+        background:white; border-radius:12px;
+        padding:20px; width:90%; max-width:450px;">
+
+        <h2 style="margin-top:0;">Give Feedback 💬</h2>
+        <div id="feedback-success"
+             style="display:none;
+            background:#e7ffe7;
+            color:#0a7b0a;
+            padding:10px;
+            border-left:5px solid #0a7b0a;
+            border-radius:6px;
+            margin-bottom:10px;
+            font-weight:600;">
+            ✔ Feedback submitted successfully!
+        </div>
+
+        <textarea id="feedback-text"
+                  style="width:100%; height:120px;
+                  border:1px solid #ccc; border-radius:8px;
+                  padding:10px; font-size:15px;"
+                  placeholder="Write your feedback here..."></textarea>
+
+        <div style="margin-top:15px; text-align:right;">
+            <button class="btn" onclick="submitFeedback()">Submit</button>
+            <button class="btn" onclick="closeFeedback()">Close</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

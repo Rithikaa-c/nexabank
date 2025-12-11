@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Recharge - Nexa Bank</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #062045;
+            color: white;
+        }
+
+        .header {
+            background: #062045;
+            padding: 14px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 22px;
+            color: #ffcc33;
+        }
+        .back-btn {
+            background: #ffcc33;
+            padding: 7px 16px;
+            border-radius: 8px;
+            color: black;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* MESSAGE */
+        .msg-box {
+            text-align: center;
+            padding: 12px;
+            margin: 10px auto;
+            width: 70%;
+            border-radius: 10px;
+            display: none;
+        }
+        .error { background: #ff4f4f; display:block; }
+        .success { background: #5cb85c; display:block; }
+
+        /* SELECTOR */
+        .selector-box {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            padding: 14px;
+            background: #0b3a81;
+        }
+        .selector-box select,
+        .selector-box input {
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: white;
+            color: #062045;
+            font-weight: 600;
+            min-width: 180px;
+        }
+
+        /* OPERATORS */
+        .operator-row {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin: 20px 0;
+        }
+        .op-logo {
+            background: white;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255,255,255,0.3);
+            transition: 0.2s;
+            opacity: 0.5;
+        }
+        .op-logo img { width: 40px; }
+        .op-logo.active {
+            transform: scale(1.2);
+            opacity: 1;
+            border: 2px solid yellow;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 8px 0;
+        }
+        .tab-btn {
+            background: #123e85;
+            padding: 8px 16px;
+            border-radius: 18px;
+            border: 1px solid #4678c4;
+            color: white;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #1c5bd1;
+        }
+
+        /* PLANS GRID */
+        .plan-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+            gap: 20px;
+            padding: 25px;
+        }
+        .plan-card {
+            background: white;
+            color: #062045;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: 0.25s;
+        }
+        .plan-card:hover {
+            transform: translateY(-6px);
+        }
+        .price {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0;
+        }
+        .details {
+            font-size: 15px;
+            margin: 8px 0;
+            opacity: 0.8;
+        }
+        .pay-btn {
+            margin-top: 12px;
+            padding: 12px;
+            background: #0dac4a;
+            color: white;
+            border: none;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>Nexa Bank – Recharge</h1>
+    <a th:href="@{'/dashboard'(accountNumber=${accountNumber})}" class="back-btn">⬅ Dashboard</a>
+</div>
+
+<div id="message" class="msg-box"></div>
+
+<!-- SELECTOR -->
+<div class="selector-box">
+    <select id="rechargeType">
+        <option value="PREPAID">Prepaid</option>
+        <option value="POSTPAID">Postpaid</option>
+        <option value="DTH">DTH</option>
+    </select>
+    <input type="text" id="mobileNumber" placeholder="Enter Mobile / Subscriber Number">
+</div>
+
+<!-- OPERATOR SELECT -->
+<div class="operator-row">
+    <div class="op-logo active" onclick="changeOperator('Jio', this)">
+        <img src="/operators/jio.png">
+    </div>
+    <div class="op-logo" onclick="changeOperator('Airtel', this)">
+        <img src="/operators/airtel.png">
+    </div>
+    <div class="op-logo" onclick="changeOperator('VI', this)">
+        <img src="/operators/vi.png">
+    </div>
+    <div class="op-logo" onclick="changeOperator('BSNL', this)">
+        <img src="/operators/bsnl.png">
+    </div>
+</div>
+
+<!-- FILTER -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="filterPlans('ALL',event)">All Packs</button>
+    <button class="tab-btn" onclick="filterPlans('DAILY',event)">Daily Data</button>
+    <button class="tab-btn" onclick="filterPlans('BOOSTER',event)">Data Booster</button>
+    <button class="tab-btn" onclick="filterPlans('VALIDITY',event)">Validity</button>
+    <button class="tab-btn" onclick="filterPlans('VOICE',event)">Voice Only</button>
+</div>
+
+<!-- PLANS -->
+<div class="plan-container" id="plans"></div>
+
+<!-- FORM -->
+<form id="rechargeForm" method="post" th:action="@{/recharge}">
+    <input type="hidden" name="accountNumber" th:value="${accountNumber}">
+    <input type="hidden" name="rechargeType" id="hiddenType">
+    <input type="hidden" name="operator" id="hiddenOperator">
+    <input type="hidden" name="mobileNumber" id="hiddenNumber">
+    <input type="hidden" name="amount" id="hiddenAmount">
+</form>
+
+<script>
+
+    let selectedOperator = "Jio";
+
+    const allPlans = {
+
+        Jio: [
+            {price:149, type:"DAILY", desc:"1GB/day • 20 Days"},
+            {price:239, type:"DAILY", desc:"1.5GB/day • 28 Days"},
+            {price:299, type:"DAILY", desc:"2GB/day • 28 Days"},
+            {price:666, type:"BOOSTER", desc:"Data Booster • 84 Days"},
+            {price:849, type:"VALIDITY", desc:"3GB/day • 84 Days"},
+            {price:2999, type:"VALIDITY", desc:"Annual Pack • 365 Days"},
+            {price:199, type:"VOICE", desc:"Voice Only • 30 Days"},
+            {price:109, type:"DAILY", desc:"1GB/day • 14 Days"},
+            {price:399, type:"DAILY", desc:"2GB/day • 56 Days"},
+            {price:699, type:"BOOSTER", desc:"Booster • 90 Days"},
+            {price:799, type:"VALIDITY", desc:"2GB/day • 90 Days"},
+        ],
+
+        Airtel: [
+            {price:155, type:"DAILY", desc:"1GB/day • 20 Days"},
+            {price:245, type:"DAILY", desc:"1.5GB/day • 28 Days"},
+            {price:299, type:"DAILY", desc:"2GB/day • 28 Days"},
+            {price:719, type:"BOOSTER", desc:"84 Days Booster"},
+            {price:839, type:"VALIDITY", desc:"90 Days Validity"},
+            {price:2998, type:"VALIDITY", desc:"Annual Pack"},
+            {price:189, type:"VOICE", desc:"Voice • 28 Days"},
+            {price:459, type:"DAILY", desc:"3GB/day • 30 Days"},
+            {price:999, type:"VALIDITY", desc:"150 Days"},
+             {price:179, type:"VOICE", desc:"Voice 30 Days"},
+            {price:399, type:"DAILY", desc:"2.5GB/day • 30 Days"},
+        ],
+
+        VI: [
+            {price:149, type:"DAILY", desc:"1GB/day • 21 Days"},
+            {price:249, type:"DAILY", desc:"1.5GB/day • 28 Days"},
+            {price:299, type:"DAILY", desc:"2GB/day • 30 Days"},
+            {price:701, type:"BOOSTER", desc:"Booster • 70 Days"},
+            {price:899, type:"VALIDITY", desc:"3GB/day • 70 Days"},
+            {price:2799, type:"VALIDITY", desc:"365 Days"},
+             {price:299, type:"DAILY", desc:"2GB/day • 28 Days"},
+            {price:719, type:"BOOSTER", desc:"84 Days Booster"},
+            {price:179, type:"VOICE", desc:"Voice 30 Days"},
+            {price:399, type:"DAILY", desc:"2.5GB/day • 30 Days"},
+            {price:1499, type:"VALIDITY", desc:"180 Days"},
+        ],
+
+        BSNL: [
+            {price:119, type:"DAILY", desc:"1GB/day • 14 Days"},
+            {price:239, type:"DAILY", desc:"2GB/day • 28 Days"},
+            {price:319, type:"DAILY", desc:"2.5GB/day • 28 Days"},
+            {price:699, type:"BOOSTER", desc:"Booster • 90 Days"},
+            {price:799, type:"VALIDITY", desc:"2GB/day • 90 Days"},
+            {price:2399, type:"VALIDITY", desc:"Annual Pack"},
+            {price:159, type:"VOICE", desc:"Voice Only"},
+             {price:299, type:"DAILY", desc:"2GB/day • 28 Days"},
+            {price:719, type:"BOOSTER", desc:"84 Days Booster"},
+            {price:499, type:"DAILY", desc:"3GB/day • 30 Days"},
+            {price:1999, type:"VALIDITY", desc:"200 Days"},
+        ]
+    };
+
+    function renderPlans() {
+        let container = document.getElementById("plans");
+        container.innerHTML = "";
+
+        allPlans[selectedOperator].forEach(plan => {
+            let card = `
+                <div class="plan-card" data-type="${plan.type}">
+                    <p class="price">₹${plan.price}</p>
+                    <p class="details">${plan.desc}</p>
+                    <button class="pay-btn" onclick="doRecharge(${plan.price})">Select & Pay</button>
+                </div>
+            `;
+            container.innerHTML += card;
+        });
+    }
+
+    function changeOperator(op, element){
+        selectedOperator = op;
+
+        document.querySelectorAll(".op-logo").forEach(el => el.classList.remove("active"));
+        element.classList.add("active");
+
+        renderPlans();
+    }
+
+    function filterPlans(category,event){
+        document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+        event.target.classList.add("active");
+
+        document.querySelectorAll(".plan-card").forEach(card => {
+            const type = card.getAttribute("data-type");
+            card.style.display = (category === "ALL" || type === category) ? "flex" : "none";
+        });
+    }
+
+    function showMessage(type,msg){
+        let box = document.getElementById("message");
+        box.className = "msg-box "+type;
+        box.innerText = msg;
+    }
+
+    function doRecharge(amount){
+        let type = document.getElementById("rechargeType").value;
+        let number = document.getElementById("mobileNumber").value.trim();
+
+        if(!number){
+            showMessage("error","⚠ Enter mobile number!");
+            return;
+        }
+
+        document.getElementById("hiddenType").value = type;
+        document.getElementById("hiddenOperator").value = selectedOperator;
+        document.getElementById("hiddenNumber").value = number;
+        document.getElementById("hiddenAmount").value = amount;
+
+        document.getElementById("rechargeForm").submit();
+    }
+
+    renderPlans();
+
+</script>
+
+</body>
+</html>

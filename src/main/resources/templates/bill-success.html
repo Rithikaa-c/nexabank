@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Bill Payment Successful - Nexa Bank</title>
+
+    <!-- PDF Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            max-width: 100%;
+            background: #071e3d;
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+            color: white;
+            height: 100%;
+        }
+
+        /* HEADER */
+        .header {
+            width: 100%;
+            background: #0a2558;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            color: #f4c542;
+            margin: 0;
+        }
+
+        .back-btn {
+            background: #f4c542;
+            color: #071e3d;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            white-space: nowrap;
+            font-size: 15px;
+        }
+
+        /* PERFECT CENTER WRAPPER */
+        .page-wrapper {
+            width: 100%;
+            min-height: calc(100vh - 70px); /* prevents clipping */
+            display: flex;
+            justify-content: center;
+            align-items: center;           /* ★ vertical center */
+            padding: 20px;
+        }
+
+        /* MAIN SUCCESS CARD */
+        .accent-card {
+            width: 520px;
+            background: #0d1b3d;
+            padding: 30px;
+            border-left: 5px solid #f4c542;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        .accent-card h2 {
+            color: #f4c542;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        /* RECEIPT BOX */
+        #receipt-box {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            border-left: 5px solid #f4c542;
+            margin-top: 16px;
+        }
+
+        #receipt-box *:not(.download-btn):not(.download-btn *) {
+            color: black !important;
+            font-weight: 600;
+        }
+
+        /* BUTTONS */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #f4c542;
+            border-radius: 10px;
+            color: #071e3d;
+            font-weight: 700;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            margin-top: 18px;
+            font-size: 16px;
+        }
+
+        .btn-blue {
+            background: #0a2558;
+            color: white;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 14px;
+            background: #0a2558;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            color: white !important;
+        }
+
+        .download-btn * {
+            color: white !important;
+        }
+    </style>
+
+    <script>
+        async function downloadBillPDF() {
+            const receipt = document.getElementById("receipt-box");
+            const { jsPDF } = window.jspdf;
+
+            const canvas = await html2canvas(receipt, {
+                scale: 3,
+                backgroundColor: "#ffffff"
+            });
+
+            const pdf = new jsPDF("p", "pt", "a4");
+            const imgData = canvas.toDataURL("image/png");
+
+            const imgWidth = 550;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+
+            pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
+            pdf.save("NexaBank_BillPayment_Receipt.pdf");
+        }
+    </script>
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <h1>Nexa Bank – Bill Payment</h1>
+    <a th:href="@{'/dashboard'(accountNumber=${accountNumber})}" class="back-btn">⬅ Dashboard</a>
+</div>
+
+<!-- CENTERED CONTENT -->
+<div class="page-wrapper">
+    <div class="accent-card">
+
+        <h2>Bill Payment Successful</h2>
+
+        <p th:if="${message}" style="color:#7CFC00;" th:text="${message}"></p>
+        <p th:if="${error}" style="color:#ff6b6b;" th:text="${error}"></p>
+
+        <!-- RECEIPT -->
+        <div id="receipt-box" th:if="${id}">
+            <h3 style="margin-top: 0;">🧾 Nexa Bank - Bill Payment Receipt</h3>
+
+            <p><strong>Account Number:</strong> <span th:text="${accountNumber}"></span></p>
+            <p><strong>Reference ID:</strong> <span th:text="${id}"></span></p>
+            <p><strong>Bill Type:</strong> <span th:text="${billType}"></span></p>
+            <p><strong>Provider:</strong> <span th:text="${providerName}"></span></p>
+            <p><strong>Consumer Number:</strong> <span th:text="${consumerNumber}"></span></p>
+            <p><strong>Amount Paid:</strong> ₹<span th:text="${amount}"></span></p>
+            <p><strong>Date & Time:</strong> <span th:text="${dateTime}"></span></p>
+
+            <button class="download-btn" onclick="downloadBillPDF()">
+                DOWNLOAD RECEIPT (PDF)
+            </button>
+        </div>
+
+        <a th:href="@{'/statements'(accountNumber=${accountNumber})}" class="btn">
+            View Transactions
+        </a>
+
+    </div>
+</div>
+
+</body>
+</html>

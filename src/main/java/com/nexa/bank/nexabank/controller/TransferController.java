@@ -2,6 +2,7 @@ package com.nexa.bank.nexabank.controller;
 
 import com.nexa.bank.nexabank.model.Transaction;
 import com.nexa.bank.nexabank.model.Account;
+import com.nexa.bank.nexabank.service.AccountService;
 import com.nexa.bank.nexabank.service.TransactionService;
 import com.nexa.bank.nexabank.service.EmailService;
 import com.nexa.bank.nexabank.service.PdfService;
@@ -18,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 
 @Controller
 public class TransferController {
+    private final AccountService accountService;
 
     private final TransactionService transactionService;
     private final AccountRepository accountRepo;
@@ -27,13 +29,16 @@ public class TransferController {
     public TransferController(TransactionService transactionService,
                               AccountRepository accountRepo,
                               EmailService emailService,
-                              PdfService pdfService) {
+                              PdfService pdfService,
+                              AccountService accountService) {
 
         this.transactionService = transactionService;
         this.accountRepo = accountRepo;
         this.emailService = emailService;
         this.pdfService = pdfService;
+        this.accountService = accountService; // ⭐ FIXED
     }
+
 
     // LOAD PAGE
     @GetMapping("/transfer")
@@ -49,13 +54,23 @@ public class TransferController {
                                   @RequestParam BigDecimal amount,
                                   @RequestParam(required = false) String remarks,
                                   @RequestParam String recipientName,
+                                  @RequestParam String pin,
                                   Model model) {
 
         try {
-
-            // ---------------------- DAILY LIMIT VALIDATION (ADDED) ----------------------
+            // ⭐ Fetch sender account
             Account sender = accountRepo.findByAccountNumber(fromAccount)
                     .orElseThrow(() -> new RuntimeException("Sender account not found"));
+
+            // ⭐ PIN CHECK — same as deposit
+            String hashedPin = accountService.hashPin(pin);
+
+            if (!hashedPin.equals(sender.getPin())) {
+                model.addAttribute("error", "Incorrect PIN");
+                model.addAttribute("accountNumber", accountNumber);
+                return "transfer";
+            }
+
 
             // Reset usage if date changed
             if (sender.getLastLimitResetDate() == null ||

@@ -28,6 +28,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     @Query("SELECT COUNT(a) FROM Account a WHERE a.cardFrozen = true")
     Long countFrozenAccounts();
+    @Modifying
+    @Query("DELETE FROM Account a WHERE a.accountNumber = :acc")
+    void deleteByAccountNumber(@Param("acc") String acc);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Account a where a.accountNumber = :acc")

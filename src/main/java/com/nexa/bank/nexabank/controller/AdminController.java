@@ -5,10 +5,7 @@ import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.nexa.bank.nexabank.model.*;
-import com.nexa.bank.nexabank.repository.AccountRepository;
-import com.nexa.bank.nexabank.repository.AdminLogRepository;
-import com.nexa.bank.nexabank.repository.ComplaintRepository;
-import com.nexa.bank.nexabank.repository.TransactionRepository;
+import com.nexa.bank.nexabank.repository.*;
 import com.nexa.bank.nexabank.service.AdminDashboardService;
 import com.nexa.bank.nexabank.service.AdminService;
 import com.nexa.bank.nexabank.service.EmailService;
@@ -624,10 +621,6 @@ public class AdminController {
         return "redirect:/admin/complaints";
     }
 
-    @GetMapping("/admin/dashboard")
-    public String adminDashboard() {
-        return "admin-dashboard";  // your file name
-    }
 
     @GetMapping("/admin/activity-heatmap")
     public String heatmap(HttpSession session, Model model) {
@@ -837,6 +830,161 @@ public class AdminController {
         }
 
         return "redirect:/admin/send-notice";
+    }
+    @GetMapping("/admin/analytics")
+    public String analytics(HttpSession session, Model model) {
+        Admin admin = (Admin) session.getAttribute("loggedAdmin");
+        if (admin == null) return "redirect:/admin-login";
+
+        model.addAttribute("loggedAdmin", admin);
+
+        // deposits / withdrawals / repayments (maps date->amount)
+        model.addAttribute("depositsLast7", dashboardService.getLast7DaysDeposits());
+        model.addAttribute("withdrawalsLast7", dashboardService.getLast7DaysWithdrawals());
+        model.addAttribute("repaymentsLast7", dashboardService.getLast7DaysRepayments());
+
+        // top accounts
+        model.addAttribute("topActive", dashboardService.getTopActiveAccounts(10));
+
+        // hourly heatmap and busiest hour
+        long[] hours = dashboardService.getTodayHourlyHeatmap();
+        model.addAttribute("hourlyHeatmap", hours);
+
+        int busiestHour = 0;
+        long max = 0;
+        for (int i = 0; i < hours.length; i++) {
+            if (hours[i] > max) { max = hours[i]; busiestHour = i; }
+        }
+        model.addAttribute("busiestHour", busiestHour);
+
+        // pending complaints
+        model.addAttribute("pendingComplaints", dashboardService.getPendingComplaintsCount());
+
+        return "admin-analytics";
+    }
+    @Autowired
+    private DeleteRequestRepository deleteRequestRepository;
+    @GetMapping("/admin/delete-requests")
+    public String viewDeleteRequests(HttpSession session, Model model) {
+
+        if (session.getAttribute("loggedAdmin") == null)
+            return "redirect:/admin-login";
+
+        model.addAttribute("requests", deleteRequestRepository.findAll());
+        return "admin-delete-requests";
+    }
+    @GetMapping("/admin/delete-approve")
+    public String approveDelete(@RequestParam Long id,
+                                @RequestParam String note,
+                                RedirectAttributes ra,
+                                HttpSession session) {
+
+        DeleteRequest req = deleteRequestRepository.findById(id).orElse(null);
+
+        if (req != null) {
+            req.setStatus("APPROVED");
+            req.setNote(note);
+            deleteRequestRepository.save(req);
+
+            // GET ADMIN ID
+            Admin admin = (Admin) session.getAttribute("loggedAdmin");
+            String adminId = admin.getAdminId();
+
+            // ⭐ SAVE LOG
+            logRepository.save(new AdminLog(
+                    adminId,
+                    req.getAccountNumber(),
+                    "DELETE_APPROVED"
+            ));
+
+            // EMAIL to customer
+            Account acc = accountRepository
+                    .findByAccountNumber(req.getAccountNumber())
+                    .orElse(null);
+
+            emailService.sendEmail(
+                    acc.getEmail(),
+                    "Account Deletion Approved - NexaBank",
+                    "Dear " + acc.getHolderName() + ",\n\n" +
+                            "Your account deletion request has been APPROVED.\n\n" +
+                            "Reason:\n" + note + "\n\n" +
+                            "Thank you for banking with NexaBank.\n\n" +
+                            "Regards,\nNexaBank Team"
+            );
+        }
+
+        ra.addFlashAttribute("msg", "Request approved and logged.");
+        return "redirect:/admin/delete-requests";
+    }
+    @GetMapping("/admin/delete-reject")
+    public String rejectDelete(@RequestParam Long id,
+                               @RequestParam String note,
+                               RedirectAttributes ra,
+                               HttpSession session) {
+
+        DeleteRequest req = deleteRequestRepository.findById(id).orElse(null);
+
+        if (req != null) {
+            req.setStatus("REJECTED");
+            req.setNote(note);
+            deleteRequestRepository.save(req);
+
+            // GET ADMIN ID
+            Admin admin = (Admin) session.getAttribute("loggedAdmin");
+            String adminId = admin.getAdminId();
+
+            // ⭐ SAVE LOG
+            logRepository.save(new AdminLog(
+                    adminId,
+                    req.getAccountNumber(),
+                    "DELETE_REJECTED"
+            ));
+
+            // EMAIL to customer
+            Account acc = accountRepository
+                    .findByAccountNumber(req.getAccountNumber())
+                    .orElse(null);
+
+            emailService.sendEmail(
+                    acc.getEmail(),
+                    "Account Deletion Rejected - NexaBank",
+                    "Dear " + acc.getHolderName() + ",\n\n" +
+                            "Your account deletion request has been REJECTED.\n\n" +
+                            "Reason:\n" + note + "\n\n" +
+                            "If you have questions, please contact support.\n\n" +
+                            "Regards,\nNexaBank Team"
+            );
+        }
+
+        ra.addFlashAttribute("msg", "Request rejected and logged.");
+        return "redirect:/admin/delete-requests";
+    }
+    @Autowired
+    private FeedbackRepository feedbackRepository;
+    @GetMapping("/admin/feedbacks")
+    public String feedbackList(HttpSession session, Model model) {
+
+        Admin admin = (Admin) session.getAttribute("loggedAdmin");
+        if (admin == null) {
+            return "redirect:/admin-login";
+        }
+
+        model.addAttribute("loggedAdmin", admin);
+        model.addAttribute("list", feedbackRepository.findAll());
+
+        return "admin-feedbacks";
+    }
+
+    @PostMapping("/admin/feedback-seen/{id}")
+    public String markSeen(@PathVariable Long id) {
+
+        Feedback fb = feedbackRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Feedback not found"));
+
+        fb.setSeen(true);
+        feedbackRepository.save(fb);
+
+        return "redirect:/admin/feedbacks";
     }
 
 }

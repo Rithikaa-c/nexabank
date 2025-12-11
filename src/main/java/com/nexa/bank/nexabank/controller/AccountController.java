@@ -1,9 +1,11 @@
 package com.nexa.bank.nexabank.controller;
 import com.nexa.bank.nexabank.model.Account;
 import com.nexa.bank.nexabank.model.Complaint;
+import com.nexa.bank.nexabank.model.DeleteRequest;
 import com.nexa.bank.nexabank.model.Transaction;
 import com.nexa.bank.nexabank.repository.AccountRepository;
 import com.nexa.bank.nexabank.repository.ComplaintRepository;
+import com.nexa.bank.nexabank.repository.DeleteRequestRepository;
 import com.nexa.bank.nexabank.service.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -586,26 +588,34 @@ public class AccountController {
     @PostMapping("/deposit")
     public String handleDeposit(@RequestParam String accountNumber,
                                 @RequestParam BigDecimal amount,
+                                @RequestParam String pin,
                                 RedirectAttributes ra) {
 
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        // ⭐ Fetch account before anything else
+        Account acc = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
 
+        // ⭐ Amount Validation
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             ra.addFlashAttribute("error", "Amount must be greater than ₹0.");
             return "redirect:/deposit?accountNumber=" + accountNumber;
         }
 
-        try {
-            // Step 1: Perform deposit & get Transaction object (with real TX-ID)
-            Transaction tx = transactionService.deposit(accountNumber, amount);
+        // 🔐 PIN CHECK — Correct & Safe
+        if (!accountService.hashPin(pin).equals(acc.getPin())) {
+            ra.addFlashAttribute("error", "Incorrect PIN");
+            return "redirect:/deposit?accountNumber=" + accountNumber;
+        }
 
-            Account acc = accountRepository.findByAccountNumber(accountNumber)
-                    .orElseThrow(() -> new RuntimeException("Account not found"));
+        try {
+            // ⭐ Perform deposit & get Transaction object (with TX-ID)
+            Transaction tx = transactionService.deposit(accountNumber, amount);
 
             LocalDateTime now = LocalDateTime.now();
             String date = now.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
             String time = now.format(DateTimeFormatter.ofPattern("hh:mm:ss a"));
 
-            // UI data for receipt
+            // ⭐ UI data for receipt
             ra.addFlashAttribute("success", "Money Deposited Successfully!");
             ra.addFlashAttribute("updatedBalance", tx.getBalanceAfter());
             ra.addFlashAttribute("transactionId", tx.getTransactionId());
@@ -615,7 +625,7 @@ public class AccountController {
             ra.addFlashAttribute("accountNumber", accountNumber);
             ra.addFlashAttribute("amount", amount);
 
-            // Generate PDF
+            // ⭐ Generate PDF
             byte[] pdf = pdfService.generateDepositReceipt(
                     tx.getTransactionId(),
                     acc.getHolderName(),
@@ -626,7 +636,7 @@ public class AccountController {
                     time
             );
 
-            // Email
+            // ⭐ Email
             String emailMsg =
                     "<h2 style='color:#0D1B3D;'>Deposit Successful</h2>" +
                             "<p>Your deposit has been completed successfully.</p>" +
@@ -677,19 +687,31 @@ public class AccountController {
             @RequestParam BigDecimal amount,
             @RequestParam(required = false) String reason,
             @RequestParam(required = false) String otherReason,
+            @RequestParam String pin,                     // <-- PIN FROM UI
             RedirectAttributes ra) {
 
+        // If user typed custom reason
         if (otherReason != null && !otherReason.trim().isEmpty()) {
             reason = otherReason;
         }
 
         try {
-
-            // ---------------------- DAILY LIMIT VALIDATION (ADDED) ----------------------
+            // Fetch account
             Account acc = accountRepository.findByAccountNumber(accountNumber)
                     .orElseThrow(() -> new RuntimeException("Account not found"));
 
-            // Reset daily usage if it's a new day
+            // ---------------------- PIN VALIDATION ----------------------
+            // Hash entered PIN to compare with DB
+            String hashedPin = accountService.hashPin(pin);
+
+            if (!hashedPin.equals(acc.getPin())) {
+                ra.addFlashAttribute("error", "Invalid PIN! Try again.");
+                return "redirect:/withdraw?accountNumber=" + accountNumber;
+            }
+            // -------------------------------------------------------------
+
+
+            // ------------------ DAILY LIMIT VALIDATION -------------------
             if (acc.getLastLimitResetDate() == null ||
                     !acc.getLastLimitResetDate().equals(LocalDate.now())) {
 
@@ -698,33 +720,34 @@ public class AccountController {
                 accountRepository.save(acc);
             }
 
-            // Check if limit exists and active
             if (acc.getDailyLimit() != null && acc.getDailyLimit().compareTo(BigDecimal.ZERO) > 0) {
 
                 BigDecimal remainingLimit = acc.getDailyLimit().subtract(acc.getDailyUsed());
 
-                // ❌ Exceeds remaining limit
                 if (amount.compareTo(remainingLimit) > 0) {
                     ra.addFlashAttribute("error",
                             "Daily limit exceeded! Remaining limit: ₹" + remainingLimit);
                     return "redirect:/withdraw?accountNumber=" + accountNumber;
                 }
             }
-            // ---------------------- END DAILY LIMIT CHECK ----------------------
+            // -------------------------------------------------------------
 
 
-            // Step 1: Make withdrawal (returns transaction)
+            // Perform withdrawal
             Transaction tx = transactionService.withdraw(accountNumber, amount, reason);
 
-            // After success: Add used amount
+            // Update daily used limit
             acc.setDailyUsed(acc.getDailyUsed().add(amount));
             accountRepository.save(acc);
 
+
+            // Timestamp
             LocalDateTime now = LocalDateTime.now();
             String date = now.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
             String time = now.format(DateTimeFormatter.ofPattern("hh:mm:ss a"));
 
-            // UI Flash attributes
+
+            // Add flash attributes for UI
             ra.addFlashAttribute("success", "Withdrawal successful!");
             ra.addFlashAttribute("updatedBalance", tx.getBalanceAfter());
             ra.addFlashAttribute("transactionId", tx.getTransactionId());
@@ -734,6 +757,7 @@ public class AccountController {
             ra.addFlashAttribute("date", date);
             ra.addFlashAttribute("time", time);
             ra.addFlashAttribute("holderName", acc.getHolderName());
+
 
             // Generate PDF
             byte[] pdf = pdfService.generateWithdrawReceipt(
@@ -747,6 +771,7 @@ public class AccountController {
                     time
             );
 
+            // Send email
             String emailMsg =
                     "<h2>Withdrawal Successful</h2>" +
                             "<p><b>Transaction ID:</b> " + tx.getTransactionId() + "</p>" +
@@ -1112,6 +1137,80 @@ public class AccountController {
         ra.addFlashAttribute("resendMessage", "A new OTP has been sent to your email!");
 
         return "redirect:/forgot-pin-verify-otp?email=" + email;
+    }
+    @Autowired
+    private DeleteRequestRepository deleteRequestRepository;
+    @GetMapping("/delete-account-form")
+    public String deleteForm(@RequestParam String accountNumber, Model model) {
+
+        List<DeleteRequest> requests = deleteRequestRepository.findByAccountNumber(accountNumber);
+
+        if (!requests.isEmpty()) {
+            DeleteRequest req = requests.get(0); // latest
+
+            model.addAttribute("status", req.getStatus());
+            model.addAttribute("reason", req.getReason());
+        } else {
+            model.addAttribute("status", null);
+            model.addAttribute("reason", null);
+        }
+
+        model.addAttribute("accountNumber", accountNumber);
+        return "delete-account-form";
+    }
+
+    @PostMapping("/delete-account-request")
+    public String submitDelete(
+            @RequestParam String accountNumber,
+            @RequestParam String reason,
+            RedirectAttributes ra) {
+
+        DeleteRequest req = new DeleteRequest();
+        req.setAccountNumber(accountNumber);
+        req.setReason(reason);
+
+        deleteRequestRepository.save(req);
+
+        ra.addFlashAttribute("success",
+                "Your delete request has been submitted. Admin will review it.");
+
+        return "redirect:/dashboard?accountNumber=" + accountNumber;
+    }
+    @GetMapping("/confirm-delete")
+    public String confirmDelete(@RequestParam String accountNumber,
+                                RedirectAttributes ra) {
+
+        Account acc = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        // Save email info before delete
+        String email = acc.getEmail();
+        String name = acc.getHolderName();
+
+        // Delete account
+        accountRepository.delete(acc);
+
+        // ---------------- SEND EMAIL ----------------
+        try {
+            String subject = "Nexa Bank - Account Deleted Successfully";
+
+            String body = "<h2 style='color:#0D1B3D;'>Account Deleted Successfully</h2>" +
+                    "<p>Dear <b>" + name + "</b>,</p>" +
+                    "<p>Your account <b>" + accountNumber + "</b> has been permanently deleted from our system.</p>" +
+                    "<p>If this action was not initiated by you, please contact our support immediately.</p>" +
+                    "<p>Thank you for being a valued member of <b>Nexa Bank</b> 💛</p>" +
+                    "<br><p>Warm Regards,<br><b>Nexa Bank Team</b></p>";
+
+            emailService.sendEmail(email, subject, body);
+
+        } catch (Exception e) {
+            System.out.println("Email sending failed: " + e.getMessage());
+        }
+
+        // Success message for UI
+        ra.addFlashAttribute("success", "Your account has been deleted permanently.");
+
+        return "redirect:/login";
     }
 
 

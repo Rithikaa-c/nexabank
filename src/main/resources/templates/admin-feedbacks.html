@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Feedback List - Admin</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f7fb;
+            color: #0d1b3d;
+        }
+
+        .navbar {
+            background: #062045;
+            padding: 12px 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+        }
+
+        .navbar h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffcc33;
+        }
+
+        .nav-actions a {
+            background: #ffcc33;
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: black;
+            font-weight: 700;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .nav-actions a:hover {
+            background: #ffd95e;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        table {
+            width: 92%;
+            margin: auto;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.15);
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #dce3ef;
+        }
+
+        th {
+            background: #062045;
+            color: white;
+            font-size: 15px;
+        }
+
+        tr:hover {
+            background: #f7f9ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>NEXA BANK - ADMIN</h1>
+
+    <div class="nav-actions">
+        <a href="/admin-dashboard">← Back</a>
+
+    </div>
+</div>
+
+<h2>Customer Feedbacks</h2>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Account Number</th>
+        <th>Message</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    <tr th:each="f : ${list}">
+        <td th:text="${f.id}"></td>
+        <td th:text="${f.accountNumber}"></td>
+        <td th:text="${f.message}"></td>
+        <td th:text="${f.createdAt}"></td>
+
+        <td>
+            <span th:if="${!f.seen}"
+                  style="color:white; background:red; padding:6px 12px; border-radius:6px;">
+                Not Seen
+            </span>
+
+            <span th:if="${f.seen}"
+                  style="color:white; background:green; padding:6px 12px; border-radius:6px;">
+                Seen
+            </span>
+        </td>
+
+        <td>
+            <form th:if="${!f.seen}"
+                  th:action="@{'/admin/feedback-seen/' + ${f.id}}"
+                  method="post">
+                <button style="
+                        background:green;
+                        color:white;
+                        padding:6px 12px;
+                        border:none;
+                        border-radius:6px;
+                        cursor:pointer;">
+                    Mark as Seen
+                </button>
+            </form>
+
+            <span th:if="${f.seen}"
+                  style="color:gray; font-weight:600;">
+                ✔ Already Seen
+            </span>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nexa Bank - Advanced Analytics</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0d1b3d;
+            color: white;
+        }
+
+        /* NAV BAR (Same as Admin Dashboard) */
+        .navbar {
+            background: #0b1533;
+            padding: 18px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4);
+        }
+
+        .navbar h2 {
+            color: #f5c542;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .back-btn {
+            background: #f5c542;
+            color: #0d1b3d;
+            padding: 10px 20px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .back-btn:hover { background: #d9ad39; }
+
+        /* CONTENT */
+        .container {
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 30px;
+            font-weight: 700;
+            color: #f5c542;
+            margin-bottom: 25px;
+        }
+
+        /* CARDS GRID */
+        .row {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: #11265a;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4);
+            width: 420px;
+        }
+
+        .wide-card {
+            flex: 1;
+        }
+
+        canvas {
+            margin-top: 10px;
+        }
+
+        ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 16px;
+        }
+
+        ul li {
+            margin-bottom: 8px;
+            color: #f1f1f1;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="navbar">
+    <h2>Nexa Bank – Analytics Overview</h2>
+    <button class="back-btn" onclick="location.href='/admin-dashboard'">← Back to Dashboard</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+    <h1>📊 Advanced Analytics & Insights</h1>
+
+    <!-- FIRST ROW : Deposits / Withdrawals / Repayments -->
+    <div class="row">
+
+        <div class="card">
+            <h3>Last 7 Days — Deposits</h3>
+            <canvas id="depositsChart"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Last 7 Days — Withdrawals</h3>
+            <canvas id="withdrawalsChart"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Last 7 Days — Loan Repayments</h3>
+            <canvas id="repaymentsChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- SECOND ROW -->
+    <div class="row" style="margin-top: 30px;">
+
+        <div class="card wide-card">
+            <h3>Today's Hourly Activity</h3>
+            <canvas id="heatmapChart"></canvas>
+
+            <p style="margin-top: 10px;">
+                🔥 <strong>Busiest Hour:</strong>
+                <span th:text="${busiestHour}">0</span>:00
+            </p>
+        </div>
+
+        <div class="card" style="width: 300px;">
+            <h3>Top Active Accounts</h3>
+            <ul>
+                <li th:each="e : ${topActive}"
+                    th:text="${e.key + ' — ' + e.value + ' txns'}"></li>
+            </ul>
+
+            <hr style="border:1px solid #374b7c; margin: 12px 0;">
+
+            <h3>Pending Complaints</h3>
+            <p style="font-size: 22px; font-weight: bold; color:#f5c542;"
+               th:text="${pendingComplaints}">0</p>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- JAVASCRIPT SECTION -->
+<script th:inline="javascript">
+
+    /**************************
+     * EXTRACT BACKEND DATA
+     **************************/
+    const deposits = /*[[${depositsLast7}]]*/ {};
+    const withdrawals = /*[[${withdrawalsLast7}]]*/ {};
+    const repayments = /*[[${repaymentsLast7}]]*/ {};
+    const hourly = /*[[${hourlyHeatmap}]]*/ [];
+
+    const labels = Object.keys(deposits);
+
+    const depositsData = labels.map(l => Number(deposits[l] || 0));
+    const withdrawalsData = labels.map(l => Number(withdrawals[l] || 0));
+    const repaymentsData = labels.map(l => Number(repayments[l] || 0));
+
+
+    /**************************
+     * LINE CHART COLORS
+     **************************/
+    const COLORS = {
+        yellow: '#f5c542',
+        pink: '#ff6f91',
+        teal: '#42e3c6',
+        purple: '#a275ff'
+    };
+
+
+    /**************************
+     * CREATE CHARTS
+     **************************/
+    new Chart(document.getElementById("depositsChart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "Deposits",
+                data: depositsData,
+                borderColor: COLORS.yellow,
+                backgroundColor: "transparent",
+                borderWidth: 3
+            }]
+        }
+    });
+
+    new Chart(document.getElementById("withdrawalsChart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "Withdrawals",
+                data: withdrawalsData,
+                borderColor: COLORS.pink,
+                backgroundColor: "transparent",
+                borderWidth: 3
+            }]
+        }
+    });
+
+    new Chart(document.getElementById("repaymentsChart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "Repayments",
+                data: repaymentsData,
+                borderColor: COLORS.teal,
+                backgroundColor: "transparent",
+                borderWidth: 3
+            }]
+        }
+    });
+
+
+    /**************************
+     * HOURLY BAR CHART
+     **************************/
+    const hourLabels = Array.from({length: 24}, (_, i) => i + ":00");
+
+    new Chart(document.getElementById("heatmapChart"), {
+        type: "bar",
+        data: {
+            labels: hourLabels,
+            datasets: [{
+                label: "Transactions",
+                data: hourly,
+                backgroundColor: COLORS.purple
+            }]
+        }
+    });
+
+</script>
+
+</body>
+</html>

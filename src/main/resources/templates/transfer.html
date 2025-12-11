@@ -207,6 +207,37 @@
     cursor: pointer;
     text-align: center;
 }
+.pin-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pin-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.pin-input {
+    width: 30px;
+    height: 30px;
+    font-size: 22px;
+    text-align: center;
+    border: 2px solid #cfd5e3;
+    border-radius: 8px;
+}
+
+.pin-input:focus {
+    border-color: #0d1b3d;
+}
+
+.show-pin-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 6px;
+}
 
 .equal-btn-alt {
     width: 50%;
@@ -391,6 +422,25 @@
 
         <label>Remarks (optional)</label>
         <textarea name="remarks" rows="2"></textarea>
+        <!-- PIN INPUT -->
+        <label><strong>Enter PIN</strong></label>
+
+        <div class="pin-wrapper">
+            <div class="pin-container">
+                <input type="password" maxlength="1" class="pin-input" required>
+                <input type="password" maxlength="1" class="pin-input" required>
+                <input type="password" maxlength="1" class="pin-input" required>
+                <input type="password" maxlength="1" class="pin-input" required>
+            </div>
+
+            <div class="show-pin-row">
+                <input type="checkbox" id="showPinCheckbox" onclick="togglePinVisibility()">
+                <label for="showPinCheckbox">Show PIN</label>
+            </div>
+        </div>
+
+        <!-- hidden full pin -->
+        <input type="hidden" id="fullPin" name="pin">
 
         <div class="button-row">
             <button class="equal-btn" type="button" onclick="openConfirm()">Confirm Transfer</button>
@@ -413,6 +463,38 @@
         <button onclick="closeModal()" class="btn" style="background:#ccc;">NO</button>
     </div>
 </div>
+<script>
+    const pinInputs = document.querySelectorAll(".pin-input");
+
+    // move between boxes
+    pinInputs.forEach((input, index, arr) => {
+        input.addEventListener("input", () => {
+            if (input.value.length === 1 && arr[index + 1]) {
+                arr[index + 1].focus();
+            }
+            updateFullPin();
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && index > 0 && !input.value) {
+                arr[index - 1].focus();
+            }
+        });
+    });
+
+    function updateFullPin() {
+        let fullPin = "";
+        pinInputs.forEach(i => fullPin += i.value);
+        document.getElementById("fullPin").value = fullPin;
+    }
+
+    function togglePinVisibility() {
+        const show = document.getElementById("showPinCheckbox").checked;
+        pinInputs.forEach(i => {
+            i.type = show ? "text" : "password";
+        });
+    }
+</script>
 
 </body>
 </html>

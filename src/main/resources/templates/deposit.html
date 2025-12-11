@@ -58,6 +58,26 @@
             border-color: #0d1b3d;
         }
 
+        .pin-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .pin-input {
+            width: 30px;
+            height: 30px;
+            font-size: 22px;
+            text-align: center;
+            border: 2px solid #cfd5e3;
+            border-radius: 8px;
+        }
+
+        .pin-input:focus {
+            border-color: #0d1b3d;
+        }
+
         .processing-box {
             display: none;
             margin-top: 25px;
@@ -79,16 +99,15 @@
             font-size: 17px;
         }
 
-        /* Receipt text must be fully black */
         #receipt-box {
             background: #ffffff !important;
             color: #000 !important;
         }
 
-        #receipt-box * {
-            color: #000 !important;
-            font-weight: 600 !important;
-        }
+     #receipt-box *:not(button) {
+    color: #000 !important;
+    font-weight: 600 !important;
+}
 
         .tick {
             font-size: 24px;
@@ -115,81 +134,71 @@
         }
 
         .equal-btn-link {
-    width: 50%;
-    padding: 14px;
-    background-color: #0d1b3d;   /* NAVY BLUE */
-    color: #ffffff !important;   /* WHITE TEXT */
-    font-size: 17px;
+            width: 50%;
+            padding: 14px;
+            background-color: #0d1b3d;
+            color: #ffffff !important;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 10px;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+       /* ERROR MESSAGE IN RED */
+.error-box {
+    margin-top: 15px;
+    padding: 10px;
+    background: #ffe5e5;
+    border-left: 5px solid #ff4d4d;
+    color: #ff0000 !important;
     font-weight: bold;
-    border-radius: 10px;
-    text-decoration: none;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+    border-radius: 6px;
+}
+.pin-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
+.pin-container {
+    margin-bottom: 6px; /* reduces gap */
+}
+
+.show-pin-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* WHITE TEXT ON DOWNLOAD RECEIPT */
 .download-btn {
     margin-top: 15px;
     width: 100%;
     padding: 14px;
     background-color: #0d1b3d !important;
-    color: #ffffff !important; /* FIX: Make text white */
+    color: #ffffff !important;
     border: none;
     border-radius: 8px;
-    font-weight: 900 !important;
+    font-weight: 900;
     font-size: 16px;
     letter-spacing: 1px;
     cursor: pointer;
     text-transform: uppercase;
     text-align: center;
 }
-.download-btn,
-.download-btn *,
-#receipt-box .download-btn,
-#receipt-box .download-btn * {
-    color: #ffffff !important;
-    fill: #ffffff !important;   /* in case it was an SVG */
-    font-weight: 900 !important;
+.show-pin-row input {
+    margin: 0;
+}
+
+.show-pin-row label {
+    margin: 0;
+    padding: 0;
 }
 
     </style>
-
-    <!-- PDF Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <script>
-        async function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            const receipt = document.getElementById("receipt-box");
-
-            // High-Quality PDF Render
-            const canvas = await html2canvas(receipt, {
-                scale: 3,
-                backgroundColor: "#ffffff",
-                useCORS: true
-            });
-
-            const imgData = canvas.toDataURL("image/png");
-            const pdf = new jsPDF("p", "pt", "a4");
-
-            const imgWidth = 550;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-
-            pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
-            pdf.save("NexaBank_Deposit_Receipt.pdf");
-        }
-
-        function showProcessing() {
-            document.getElementById("processing").style.display = "block";
-        }
-
-        function playSuccess() {
-            const audio = document.getElementById("successSound");
-            audio.volume = 0.4;
-            audio.play();
-        }
-    </script>
 
 </head>
 
@@ -202,12 +211,10 @@
     <h2>Deposit Money</h2>
     <div class="subtitle">Secure — Fast — Trusted</div>
 
-    <!-- Processing -->
     <div id="processing" class="processing-box">
         ⏳ Processing deposit… Please wait.
     </div>
 
-    <!-- Success Box -->
     <div th:if="${success}" class="success-box">
         <div>
             <span class="tick">✔</span>
@@ -222,7 +229,6 @@
         <script>playSuccess();</script>
     </div>
 
-    <!-- RECEIPT BOX -->
     <div th:if="${transactionId}" id="receipt-box" style="
         margin-top: 25px;
         border-left: 5px solid #0d1b3d;
@@ -247,16 +253,34 @@
         </button>
     </div>
 
-    <!-- Error Box -->
     <div th:if="${error}" class="error-box">
         <strong th:text="${error}"></strong>
     </div>
 
-    <!-- Deposit Form -->
-    <form th:action="@{'/deposit'(accountNumber=${accountNumber})}" method="post" onsubmit="showProcessing()">
+    <form th:action="@{'/deposit'(accountNumber=${accountNumber})}" method="post"
+          onsubmit="return validatePin(); showProcessing();">
 
         <label><strong>Enter Amount</strong></label>
         <input type="number" name="amount" placeholder="Enter amount" min="1" required />
+
+        <label style="margin-top:15px;"><strong>Enter PIN</strong></label>
+        <div class="pin-wrapper">
+
+            <div class="pin-container">
+                <input type="password" maxlength="1" class="pin-input" required>
+                <input type="password" maxlength="1" class="pin-input" required>
+                <input type="password" maxlength="1" class="pin-input" required>
+                <input type="password" maxlength="1" class="pin-input" required>
+            </div>
+
+            <div class="show-pin-row">
+                <input type="checkbox" id="showPinCheckbox" onclick="togglePinVisibility()">
+                <label for="showPinCheckbox">Show PIN</label>
+            </div>
+
+        </div>
+
+        <input type="hidden" id="fullPin" name="pin">
 
         <div class="button-row">
             <button type="submit" class="equal-btn">Deposit ₹</button>
@@ -268,6 +292,74 @@
     </form>
 
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    function showProcessing() {
+        document.getElementById("processing").style.display = "block";
+    }
+
+    function playSuccess() {
+        const audio = document.getElementById("successSound");
+        audio.volume = 0.4;
+        audio.play();
+    }
+
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const receipt = document.getElementById("receipt-box");
+        const canvas = await html2canvas(receipt, { scale: 3, backgroundColor: "#ffffff" });
+
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "pt", "a4");
+        const imgWidth = 550;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+
+        pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
+        pdf.save("NexaBank_Deposit_Receipt.pdf");
+    }
+
+    const pinInputs = document.querySelectorAll(".pin-input");
+
+    pinInputs.forEach((input, index, arr) => {
+        input.addEventListener("input", () => {
+            if (input.value.length === 1 && arr[index + 1]) {
+                arr[index + 1].focus();
+            }
+            updateFullPin();
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && index > 0 && !input.value) {
+                arr[index - 1].focus();
+            }
+        });
+    });
+
+    function updateFullPin() {
+        let fullPin = "";
+        pinInputs.forEach(i => fullPin += i.value);
+        document.getElementById("fullPin").value = fullPin;
+    }
+
+    function togglePinVisibility() {
+        const show = document.getElementById("showPinCheckbox").checked;
+        pinInputs.forEach(i => {
+            i.type = show ? "text" : "password";
+        });
+    }
+
+    function validatePin() {
+        const pin = document.getElementById("fullPin").value;
+        if (pin.length !== 4) {
+            alert("Please enter 4-digit PIN");
+            return false;
+        }
+        return true;
+    }
+</script>
 
 </body>
 </html>

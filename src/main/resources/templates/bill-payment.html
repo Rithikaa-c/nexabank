@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Pay Bill - Nexa Bank</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: #071e3d;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+
+        /* HEADER */
+        .header {
+            background: #0a2558;
+            padding: 16px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .header h1 {
+            margin: 0;
+            color: #f4c542;
+            font-size: 22px;
+        }
+        .back-btn {
+            background: #f4c542;
+            padding: 8px 16px;
+            border-radius: 10px;
+            color: #071e3d;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        /* PAGE */
+        .content {
+            padding: 25px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        /* BILL CATEGORY GRID */
+        .bill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(120px,1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .bill-item {
+            background: #0d2a5d;
+            border-radius: 14px;
+            padding: 18px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 15px;
+        }
+        .bill-item:hover {
+            background: #14407b;
+            transform: translateY(-4px);
+        }
+        .bill-item.active {
+            border: 2px solid #f4c542;
+            background: #163b75;
+        }
+
+        .bill-icon {
+            font-size: 42px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        /* FORM */
+        .form-card {
+            background: #0d1b3d;
+            padding: 22px;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            max-width: 500px;
+            margin: auto;
+        }
+
+        .form-card h2 {
+            text-align: center;
+            color: #f4c542;
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-top: 14px;
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: #17396f;
+            border: none;
+            margin-top: 6px;
+            border-radius: 10px;
+            color: white;
+        }
+        input:focus, select:focus {
+            outline: none;
+            background: #225194;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 10px;
+            background: #f4c542;
+            color: #071e3d;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #ffe084;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <h1>Pay Bills</h1>
+    <a th:href="@{'/dashboard'(accountNumber=${accountNumber})}" class="back-btn">⬅ Dashboard</a>
+</div>
+
+<div class="content">
+
+    <!-- BILL CATEGORY -->
+    <div class="bill-grid">
+
+        <div class="bill-item" onclick="selectCategory('ELECTRICITY', this)">
+            <span class="bill-icon">⚡</span>
+            Electricity
+        </div>
+
+        <div class="bill-item" onclick="selectCategory('WATER', this)">
+            <span class="bill-icon">💧</span>
+            Water
+        </div>
+
+        <div class="bill-item" onclick="selectCategory('GAS', this)">
+            <span class="bill-icon">🔥</span>
+            Gas
+        </div>
+
+        <div class="bill-item" onclick="selectCategory('DTH', this)">
+            <span class="bill-icon">📺</span>
+            DTH
+        </div>
+
+        <div class="bill-item" onclick="selectCategory('BROADBAND', this)">
+            <span class="bill-icon">🌐</span>
+            Broadband
+        </div>
+
+        <div class="bill-item" onclick="selectCategory('INSURANCE', this)">
+            <span class="bill-icon">🛡️</span>
+            Insurance
+        </div>
+
+    </div>
+
+    <!-- FORM -->
+    <div class="form-card">
+
+        <h2>Enter Details</h2>
+
+        <form th:action="@{/bill-payment}" method="post">
+
+            <input type="hidden" name="accountNumber" th:value="${accountNumber}">
+            <input type="hidden" name="billType" id="billType">
+
+            <label>Provider / Biller</label>
+            <input type="text" name="providerName" placeholder="TNEB, Airtel, TataSky">
+
+            <label>Consumer Number</label>
+            <input type="text" name="consumerNumber" placeholder="Customer ID" required>
+
+            <label>Amount (₹)</label>
+            <input type="number" name="amount" min="1" required>
+
+            <button class="btn" type="submit">Pay Bill</button>
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+    function selectCategory(type, element) {
+        document.getElementById("billType").value = type;
+
+        document.querySelectorAll('.bill-item').forEach(e => e.classList.remove('active'));
+        element.classList.add('active');
+    }
+</script>
+
+</body>
+</html>
